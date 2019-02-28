@@ -1,17 +1,9 @@
 #ifndef PREDICTOR_H
 #define PREDICTOR_H
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <iostream>
 #include <map>
-#include <iterator>
-#include <vector>
 #include <regex>
-#include <cmath>
-#include <iomanip>
-#include <limits>
-#include <algorithm>
 
 #include <myhtml/api.h>
 
@@ -25,8 +17,12 @@ struct res_html {
     size_t size;
 };
 
-std::map <std::string, float> extract_features(char *html, size_t size, std::string url);
+std::map <std::string, float> extract_features(const std::string &html, const std::string &url);
+std::map <std::string, float> extract_features_parsed(myhtml_tree_t* tree, const std::string &url, const std::string &html);
 
-int predict_html(char *html, size_t size, std::string url);
+bool predict_html(const std::string &html, const std::string &url);
+bool predict_features(const std::map<std::string,float> &feature_map);
+
+// #define SPEEDREADER_FEATURES_DEBUG
 
 #endif
