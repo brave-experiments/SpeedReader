@@ -1,0 +1,11 @@
+[package]
+name = "speedreader"
+version = "0.1.0"
+authors = ["gpestana <gpestana@brave.com>"]
+edition = "2018"
+
+[dependencies]
+html5ever = "0.23.0"
+tendril = "0.4.1"
+
+
