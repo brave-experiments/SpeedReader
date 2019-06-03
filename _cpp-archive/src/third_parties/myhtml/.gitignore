@@ -1,0 +1,15 @@
+*.o
+*.so
+*.a
+*.swp
+*.swo
+bin/*
+.tags*
+docs/*
+*.dylib
+*.exe
+*~
+myhtml.pc
+uninstal.mk
+.vscode
+build
