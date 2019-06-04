@@ -6,6 +6,5 @@ edition = "2018"
 
 [dependencies]
 html5ever = "0.23.0"
-tendril = "0.4.1"
-
+regex = "1"
 
