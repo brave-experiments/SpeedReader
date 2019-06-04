@@ -6,13 +6,107 @@ use std::vec::Vec;
 
 use html5ever::parse_document;
 use html5ever::tendril::*;
-use html5ever::tree_builder::{ElementFlags, NodeOrText, QuirksMode, TreeSink};
+use html5ever::tree_builder::{
+    AppendNode, AppendText, ElementFlags, NodeOrText, QuirksMode, TreeSink,
+};
 use html5ever::{Attribute, ExpandedName, QualName};
 
+use regex::Regex;
+
+pub struct FeatureExtractor {
+    doc: String,
+    url: String,
+}
+
+impl FeatureExtractor {
+    pub fn from_document(doc: String, url: String) -> FeatureExtractor {
+        FeatureExtractor { doc, url }
+    }
+
+    pub fn extract(&mut self) -> HashMap<String, usize> {
+        let mut features = self.process_and_extract();
+        features.insert("url_depth".to_string(), self.url_depth());
+
+        features
+    }
+
+    fn url_depth(&mut self) -> usize {
+        let mut matches: Vec<regex::Match> = Vec::new();
+        let mut num;
+
+        let re = Regex::new(r"[^/]+").unwrap();
+        for c in re.captures_iter(&self.url) {
+            matches.push(c.get(0).unwrap())
+        }
+
+        num = matches.len();
+        if uri_http_or_https(*matches.get(0).unwrap()) {
+            num -= 2;
+        } else {
+            num -= 1;
+        }
+        num
+    }
+
+    fn process_and_extract(&mut self) -> HashMap<String, usize> {
+        let mut features = HashMap::new();
+        let f_tags: Vec<&str> = vec![
+            "p",
+            "ul",
+            "ol",
+            "dl",
+            "div",
+            "pre",
+            "table",
+            "select",
+            "article",
+            "section",
+            "blockquote",
+            "a",
+            "img",
+            "script",
+        ];
+
+        let mut f_checks: Vec<&str> = vec![
+            "text_blocks",
+            "url_depth",
+            "amphtml",
+            "fb_pages",
+            "og_article",
+            "words",
+            "schema_org",
+        ];
+
+        f_checks.append(&mut f_tags.clone());
+        for f in f_checks {
+            features.insert(f.to_string(), 0);
+        }
+
+        let mut sink = Sink {
+            next_id: 1,
+            names: HashMap::new(),
+            level_tracker: HashMap::new(),
+            features,
+        };
+
+        let parser = parse_document(sink, Default::default());
+
+        sink = parser
+            .from_utf8()
+            .read_from(&mut self.doc.as_bytes())
+            .unwrap();
+
+        println!("{:#?}", sink);
+        sink.features
+    }
+}
+
+#[derive(Debug)]
 struct Sink {
     next_id: usize,
     names: HashMap<usize, QualName>,
-    features: HashMap<std::string::String, usize>,
+    features: HashMap<String, usize>,
+    level_tracker: HashMap<usize, usize>,
 }
 
 impl Sink {
@@ -43,32 +137,52 @@ impl TreeSink for Sink {
         e
     }
 
-    fn create_element(&mut self, name: QualName, _: Vec<Attribute>, _: ElementFlags) -> usize {
+    fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _: ElementFlags) -> usize {
         let id = self.get_id();
         self.names.insert(id, name.clone());
 
         // increases count on feature map for selected tags
-        let tags: Vec<&str> = vec![
-            "p",
-            "ul",
-            "ol",
-            "dl",
-            "div",
-            "pre",
-            "table",
-            "select",
-            "article",
-            "section",
-            "blockquote",
-            "a",
-            "img",
-            "script",
-        ];
-
         let el = name.local.to_string();
-        if tags.iter().any(|x| String::from(*x) == el) {
-            let counter = self.features.entry(el).or_insert(0);
-            *counter += 1;
+        self.features.entry(el.clone()).and_modify(|v| *v += 1);
+
+        // #TODO how to pipe the 'match' for the code to be cleaner and to short
+        // circuit the pipeline?
+
+        if el.to_string() == "meta".to_string() {
+            for a in attrs.clone() {
+                let attr = a.value.to_string();
+
+                // check if document is opengraph compatible
+                match Regex::new(r"og:").unwrap().captures(&attr) {
+                    Some(_) => {
+                        self.features
+                            .entry("og_article".to_string())
+                            .and_modify(|v| *v = 1);
+                    }
+                    None => (),
+                };
+
+                //checks if document is fb_page
+                match Regex::new(r"fb:").unwrap().captures(&attr) {
+                    Some(_) => {
+                        self.features
+                            .entry("fb_pages".to_string())
+                            .and_modify(|v| *v = 1);
+                    }
+                    None => (),
+                }
+            }
+        }
+
+        // checks if page is AMP compatible
+        if el.to_string() == "link".to_string() {
+            for a in attrs {
+                if a.value.to_string() == "amphtml" {
+                    self.features
+                        .entry("amphtml".to_string())
+                        .and_modify(|v| *v = 1);
+                }
+            }
         }
 
         id
@@ -79,7 +193,46 @@ impl TreeSink for Sink {
     }
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {
-        panic!("{}", msg);
+        println!("{}", msg);
+    }
+
+    fn append(&mut self, pid: &usize, child: NodeOrText<usize>) {
+        match child {
+            AppendNode(n) => {
+                // calculates the current node level based on its parent (or
+                // lack of it)
+                let level = match self.level_tracker.get(&pid) {
+                    Some(pl) => pl + 1,
+                    None => 1,
+                };
+                self.level_tracker.insert(n, level);
+            }
+            // calculates `words` and `text_blocks` features
+            AppendText(t) => {
+                let parent_level = self.level_tracker.get(pid).unwrap();
+                let parent_el = self.names.get(pid).unwrap().local.to_string();
+
+                if parent_el == "p" {
+                    // words
+                    let text = escape_default(&t);
+                    let num_words: Vec<&str> = text.split(' ').collect();
+                    self.features
+                        .entry("words".to_string())
+                        .and_modify(|v| *v += num_words.len());
+
+                    // text_blocks
+                    if num_words.len() > 400 && *parent_level > 1 && *parent_level < 11 {
+                        self.features
+                            .entry("text_blocks".to_string())
+                            .and_modify(|v| *v += 1);
+                    }
+                }
+            }
+        }
+    }
+
+    fn add_attrs_if_missing(&mut self, _: &usize, _attrs: Vec<Attribute>) {
+        // #TODO: how to deal with missing attrs?
     }
 
     // unimplemented traits
@@ -95,12 +248,7 @@ impl TreeSink for Sink {
         unimplemented!();
     }
     fn set_quirks_mode(&mut self, _mode: QuirksMode) {}
-    fn append(&mut self, _parent: &usize, _child: NodeOrText<usize>) {}
-
     fn append_doctype_to_document(&mut self, _: StrTendril, _: StrTendril, _: StrTendril) {}
-    fn add_attrs_if_missing(&mut self, _: &usize, _attrs: Vec<Attribute>) {
-        unimplemented!();
-    }
     fn remove_from_parent(&mut self, _target: &usize) {
         unimplemented!();
     }
@@ -115,29 +263,39 @@ impl TreeSink for Sink {
     }
 }
 
-pub struct FeatureExtractor {
-    doc: String,
+// helper functions
+fn uri_http_or_https(m: regex::Match) -> bool {
+    if m.end() == 5 || m.end() == 6 {
+        true
+    } else {
+        false
+    }
 }
 
-impl FeatureExtractor {
-    pub fn from_document(d: String) -> FeatureExtractor {
-        FeatureExtractor { doc: d }
-    }
+pub fn escape_default(s: &str) -> String {
+    s.chars().flat_map(|c| c.escape_default()).collect()
+}
 
-    pub fn extract(&mut self) -> HashMap<String, usize> {
-        let mut sink = Sink {
-            next_id: 1,
-            names: HashMap::new(),
-            features: HashMap::new(),
-        };
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        let parser = parse_document(sink, Default::default());
+    #[test]
+    fn test_depth_url() {
+        let mut url = "http://url.com".to_string();
+        let mut ext1 = FeatureExtractor::from_document("".to_string(), url);
+        assert_eq!(ext1.url_depth(), 0);
 
-        sink = parser
-            .from_utf8()
-            .read_from(&mut self.doc.as_bytes())
-            .unwrap();
+        url = "http://url.com/".to_string();
+        let mut ext2 = FeatureExtractor::from_document("".to_string(), url);
+        assert_eq!(ext2.url_depth(), 0);
 
-        sink.features
+        url = "http://url.com/another/path/here?test".to_string();
+        let mut ext3 = FeatureExtractor::from_document("".to_string(), url);
+        assert_eq!(ext3.url_depth(), 3);
+
+        url = "www.url.com/another/path".to_string();
+        let mut ext4 = FeatureExtractor::from_document("".to_string(), url);
+        assert_eq!(ext4.url_depth(), 2);
     }
 }
