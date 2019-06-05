@@ -19,7 +19,6 @@ fn main() {
     let mut extractor = FeatureExtractorT::from_document(data, url);
     let result = extractor.extract();
 
-    println!("features map len: {}\n", result.len());
     for (k, v) in result.iter() {
         println!("{}: {}", k, v);
     }

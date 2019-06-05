@@ -1,8 +1,8 @@
 use html5ever::tendril::Tendril;
-use html5ever::tokenizer::{BufferQueue, EndTag, StartTag, Token, TokenSink, TokenSinkResult};
 use html5ever::tokenizer::{
-    CharacterTokens, CommentToken, DoctypeToken, EOFToken, NullCharacterToken, ParseError, Tag,
-    TagToken, Tokenizer, TokenizerOpts,
+    BufferQueue, CharacterTokens, CommentToken, DoctypeToken, EOFToken, EndTag, NullCharacterToken,
+    ParseError, StartTag, Tag, TagToken, Token, TokenSink, TokenSinkResult, Tokenizer,
+    TokenizerOpts,
 };
 
 use regex::Regex;
@@ -50,7 +50,7 @@ impl FeatureExtractorT {
         ];
 
         for f in feature_tags {
-            features.insert(f.to_string(), 0);
+            features.insert(f, 0);
         }
 
         let sink = SinkFeatureExtractor {
@@ -127,10 +127,11 @@ impl SinkFeatureExtractor {
                 // checks if current set of words is `text_block`
                 // #TODO refactor
                 // #TODO params to consts/configs
-                if self.level > 1
+
+                if num_words.len() > 400
+                    && self.level > 1
                     && self.level < 11
                     && self.is_within_p_tag
-                    && num_words.len() > 400
                 {
                     self.features
                         .entry("text_blocks".to_string())
