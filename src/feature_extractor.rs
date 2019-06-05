@@ -85,6 +85,7 @@ impl FeatureExtractor {
         let mut sink = Sink {
             next_id: 1,
             names: HashMap::new(),
+            level_tracker: HashMap::new(),
             features,
         };
 
@@ -103,6 +104,7 @@ struct Sink {
     next_id: usize,
     names: HashMap<usize, QualName>,
     features: HashMap<String, usize>,
+    level_tracker: HashMap<usize, usize>,
 }
 
 impl Sink {
@@ -192,12 +194,20 @@ impl TreeSink for Sink {
         println!("{}", msg);
     }
 
-    fn append(&mut self, parent: &usize, child: NodeOrText<usize>) {
+    fn append(&mut self, pid: &usize, child: NodeOrText<usize>) {
         match child {
-            AppendNode(_n) => (),
+            AppendNode(n) => {
+                // calculates the current node level based on its parent (or
+                // lack of it)
+                let level = match self.level_tracker.get(&pid) {
+                    Some(pl) => pl + 1,
+                    None => 1,
+                };
+                self.level_tracker.insert(n, level);
+            }
             AppendText(t) => {
                 // adds num words
-                let el = self.names.get(parent).unwrap().local.to_string();
+                let el = self.names.get(pid).unwrap().local.to_string();
                 if el == "p" {
                     let text = escape_default(&t);
                     let num_words: Vec<&str> = text.split(' ').collect();
