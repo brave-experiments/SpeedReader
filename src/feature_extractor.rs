@@ -96,7 +96,6 @@ impl FeatureExtractor {
             .read_from(&mut self.doc.as_bytes())
             .unwrap();
 
-        println!("{:#?}", sink);
         sink.features
     }
 }
@@ -137,45 +136,38 @@ impl TreeSink for Sink {
         e
     }
 
+    // everytime the parser identifies a new element, our sink will figure out
+    // if the element is part of the subset used by our classifier. if that is
+    // the case, increases the respective feature counter.
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _: ElementFlags) -> usize {
         let id = self.get_id();
         self.names.insert(id, name.clone());
 
         // increases count on feature map for selected tags
-        let el = name.local.to_string();
-        self.features.entry(el.clone()).and_modify(|v| *v += 1);
+        let elem = name.local.to_string();
+        self.features.entry(elem.clone()).and_modify(|v| *v += 1);
 
-        // #TODO how to pipe the 'match' for the code to be cleaner and to short
-        // circuit the pipeline?
-
-        if el.to_string() == "meta".to_string() {
+        // seaches for `<meta property="{og:},{fb:}..." />`
+        if elem == "meta" {
             for a in attrs.clone() {
                 let attr = a.value.to_string();
 
-                // check if document is opengraph compatible
-                match Regex::new(r"og:").unwrap().captures(&attr) {
-                    Some(_) => {
-                        self.features
-                            .entry("og_article".to_string())
-                            .and_modify(|v| *v = 1);
-                    }
-                    None => (),
-                };
+                if starts_with(&attr, "og:") {
+                    self.features
+                        .entry("og_article".to_string())
+                        .and_modify(|v| *v = 1);
+                }
 
-                //checks if document is fb_page
-                match Regex::new(r"fb:").unwrap().captures(&attr) {
-                    Some(_) => {
-                        self.features
-                            .entry("fb_pages".to_string())
-                            .and_modify(|v| *v = 1);
-                    }
-                    None => (),
+                if starts_with(&attr, "fb:") {
+                    self.features
+                        .entry("fb_pages".to_string())
+                        .and_modify(|v| *v = 1);
                 }
             }
         }
 
         // checks if page is AMP compatible
-        if el.to_string() == "link".to_string() {
+        if elem == "link" {
             for a in attrs {
                 if a.value.to_string() == "amphtml" {
                     self.features
@@ -193,9 +185,16 @@ impl TreeSink for Sink {
     }
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {
-        println!("{}", msg);
+        println!("Err doc parsing: {}", msg);
     }
 
+    // everytime the append node is required from our sink, it will either
+    // 1) update the tag level tracker by setting the new node's level as +1
+    //    from its parent and
+    // 2) if the node to append is of type `text`, it will proceed to calculate
+    //    the number of words in the text node and add that information to the
+    //    feature list. It will also decide whether the text is a `text_block`
+    //    and update the feature list accordingly.
     fn append(&mut self, pid: &usize, child: NodeOrText<usize>) {
         match child {
             AppendNode(n) => {
@@ -231,9 +230,7 @@ impl TreeSink for Sink {
         }
     }
 
-    fn add_attrs_if_missing(&mut self, _: &usize, _attrs: Vec<Attribute>) {
-        // #TODO: how to deal with missing attrs?
-    }
+    fn add_attrs_if_missing(&mut self, _: &usize, _attrs: Vec<Attribute>) {}
 
     // unimplemented traits
     fn append_based_on_parent_node(
@@ -274,6 +271,13 @@ fn uri_http_or_https(m: regex::Match) -> bool {
 
 pub fn escape_default(s: &str) -> String {
     s.chars().flat_map(|c| c.escape_default()).collect()
+}
+
+pub fn starts_with(attr: &str, pattern: &str) -> bool {
+    match Regex::new(pattern).unwrap().captures(&attr) {
+        Some(_) => true,
+        None => false,
+    }
 }
 
 #[cfg(test)]
