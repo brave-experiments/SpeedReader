@@ -1,5 +1,4 @@
-const N_FEATURES: usize = 21;
-const N_CLASSES: usize = 2;
+use crate::classifier::{N_FEATURES, N_CLASSES};
 
 pub fn predict(features: &[f32; N_FEATURES])-> usize {
     let mut classes: [i32; N_CLASSES] = Default::default();

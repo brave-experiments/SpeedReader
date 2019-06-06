@@ -8,9 +8,9 @@ use std::fs::File;
 
 fn main() {
     let url = String::from("http://example.com/hello/world/hello?again");
-    let doc_path = "./examples/html/2CdyGKStt9jwu5u.html";
+    //let doc_path = "./examples/html/2CdyGKStt9jwu5u.html";
     //let doc_path = "./examples/html/gp-ex.html";
-    //let doc_path = "./examples/html/gp-ex2.html";
+    let doc_path = "./examples/html/gp-ex2.html";
 
     let mut data = String::new();
     let mut f = File::open(doc_path).expect("err reading doc");

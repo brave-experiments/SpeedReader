@@ -17,7 +17,6 @@ pub struct FeatureExtractorT {
     url: String,
 }
 
-// all the feature extraction functions here
 impl FeatureExtractorT {
     pub fn from_document(doc: String, url: String) -> FeatureExtractorT {
         FeatureExtractorT { doc, url }

@@ -1,8 +1,8 @@
 use crate::predictor::predict;
 use std::collections::HashMap;
 
-const N_FEATURES: usize = 21;
-const N_CLASSES: usize = 2;
+pub const N_FEATURES: usize = 21;
+pub const N_CLASSES: usize = 2;
 
 pub struct Classifier {
     features_list: [f32; N_FEATURES],
