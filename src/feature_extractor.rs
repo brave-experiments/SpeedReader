@@ -96,7 +96,6 @@ impl FeatureExtractor {
             .read_from(&mut self.doc.as_bytes())
             .unwrap();
 
-        println!("{:#?}", sink);
         sink.features
     }
 }
@@ -193,7 +192,7 @@ impl TreeSink for Sink {
     }
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {
-        println!("{}", msg);
+        println!("Err doc parsing: {}", msg);
     }
 
     fn append(&mut self, pid: &usize, child: NodeOrText<usize>) {
