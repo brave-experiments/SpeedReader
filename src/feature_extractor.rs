@@ -19,12 +19,12 @@ pub struct FeatureExtractor {
 }
 
 impl FeatureExtractor {
-    pub fn from_document(d: String, u: String) -> FeatureExtractor {
-        FeatureExtractor { doc: d, url: u }
+    pub fn from_document(doc: String, url: String) -> FeatureExtractor {
+        FeatureExtractor { doc, url }
     }
 
     pub fn extract(&mut self) -> HashMap<String, usize> {
-        let mut features = self.count_tags();
+        let mut features = self.process_and_extract();
         features.insert("url_depth".to_string(), self.url_depth());
 
         features
@@ -48,7 +48,7 @@ impl FeatureExtractor {
         num
     }
 
-    fn count_tags(&mut self) -> HashMap<String, usize> {
+    fn process_and_extract(&mut self) -> HashMap<String, usize> {
         let mut features = HashMap::new();
         let f_tags: Vec<&str> = vec![
             "p",
@@ -96,10 +96,12 @@ impl FeatureExtractor {
             .read_from(&mut self.doc.as_bytes())
             .unwrap();
 
+        println!("{:#?}", sink);
         sink.features
     }
 }
 
+#[derive(Debug)]
 struct Sink {
     next_id: usize,
     names: HashMap<usize, QualName>,
@@ -205,15 +207,25 @@ impl TreeSink for Sink {
                 };
                 self.level_tracker.insert(n, level);
             }
+            // calculates `words` and `text_blocks` features
             AppendText(t) => {
-                // adds num words
-                let el = self.names.get(pid).unwrap().local.to_string();
-                if el == "p" {
+                let parent_level = self.level_tracker.get(pid).unwrap();
+                let parent_el = self.names.get(pid).unwrap().local.to_string();
+
+                if parent_el == "p" {
+                    // words
                     let text = escape_default(&t);
                     let num_words: Vec<&str> = text.split(' ').collect();
                     self.features
                         .entry("words".to_string())
                         .and_modify(|v| *v += num_words.len());
+
+                    // text_blocks
+                    if num_words.len() > 400 && *parent_level > 1 && *parent_level < 11 {
+                        self.features
+                            .entry("text_blocks".to_string())
+                            .and_modify(|v| *v += 1);
+                    }
                 }
             }
         }
