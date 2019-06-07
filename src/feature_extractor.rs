@@ -168,12 +168,23 @@ impl TreeSink for Sink {
 
         // checks if page is AMP compatible
         if elem == "link" {
-            for a in attrs {
+            for a in attrs.clone() {
                 if a.value.to_string() == "amphtml" {
                     self.features
                         .entry("amphtml".to_string())
                         .and_modify(|v| *v = 1);
                 }
+            }
+        }
+
+        // checks if element has namespace `ns:schema.org:Article` or `ns:schema.org:NewsArticle`
+        for a in attrs.clone() {
+            if starts_with(&a.value.to_string(), "https://schema.org/Article")
+                || starts_with(&a.value.to_string(), "https://schema.org/NewsArticle")
+            {
+                self.features
+                    .entry("schema_org".to_string())
+                    .and_modify(|v| *v = 1);
             }
         }
 
