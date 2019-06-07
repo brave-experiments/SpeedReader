@@ -1,3 +1,5 @@
+#![allow(clippy::all)]
+
 use html5ever::tendril::Tendril;
 use html5ever::tokenizer::{
     BufferQueue, CharacterTokens, CommentToken, DoctypeToken, EOFToken, EndTag, NullCharacterToken,
