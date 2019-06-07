@@ -1,6 +1,6 @@
 extern crate speedreader;
 
-use speedreader::feature_extractor::FeatureExtractor;
+use speedreader::classifier::feature_extractor::FeatureExtractor;
 use std::fs;
 
 fn main() {

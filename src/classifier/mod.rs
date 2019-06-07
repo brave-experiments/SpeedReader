@@ -1,4 +1,5 @@
-use crate::predictor::predict;
+mod predictor;
+pub mod feature_extractor;
 use std::collections::HashMap;
 
 pub const N_FEATURES: usize = 21;
@@ -17,7 +18,7 @@ impl Classifier {
     }
 
     pub fn classify(&self) -> usize {
-        predict(&self.features_list)
+        predictor::predict(&self.features_list)
     }
 }
 
