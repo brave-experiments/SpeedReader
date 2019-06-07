@@ -1,8 +1,11 @@
 #![allow(dead_code)]
 #![forbid(unsafe_code)]
 
-pub mod classifier;
-pub mod predictor;
+extern crate url;
+extern crate html5ever;
 
-pub mod feature_extractor;
-pub mod feature_extractor_tokenizer;
+pub mod classifier;
+
+#[cfg(test)]
+#[macro_use]
+extern crate matches;
