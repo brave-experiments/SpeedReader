@@ -1,3 +1,5 @@
+#![allow(clippy::all)]
+
 use crate::classifier::{N_FEATURES, N_CLASSES};
 
 pub fn predict(features: &[f32; N_FEATURES])-> usize {

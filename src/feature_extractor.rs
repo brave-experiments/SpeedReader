@@ -5,163 +5,140 @@ use std::string::String;
 use std::vec::Vec;
 
 use html5ever::parse_document;
+use html5ever::rcdom::Handle;
+use html5ever::rcdom::NodeData;
+use html5ever::rcdom::RcDom;
 use html5ever::tendril::*;
-use html5ever::tree_builder::{
-    AppendNode, AppendText, ElementFlags, NodeOrText, QuirksMode, TreeSink,
-};
+use html5ever::tree_builder::{AppendText, ElementFlags, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, QualName};
 
-use regex::Regex;
+use url::Url;
+
+#[derive(Debug, PartialEq)]
+pub enum FeatureExtractorError {
+    InvalidUrl(String),
+}
+
+impl From<url::ParseError> for FeatureExtractorError {
+    fn from(err: url::ParseError) -> Self {
+        FeatureExtractorError::InvalidUrl(err.to_string())
+    }
+}
 
 pub struct FeatureExtractor {
     doc: String,
     url: String,
+    pub features: HashMap<String, u32>,
 }
 
 impl FeatureExtractor {
-    pub fn from_document(doc: String, url: String) -> FeatureExtractor {
-        FeatureExtractor { doc, url }
-    }
+    pub fn parse_document(doc: &str, url: &str) -> FeatureExtractor {
+        let mut features = process_and_extract(doc);
+        features.insert("url_depth".to_string(), url_depth(url).unwrap() as u32);
 
-    pub fn extract(&mut self) -> HashMap<String, usize> {
-        let mut features = self.process_and_extract();
-        features.insert("url_depth".to_string(), self.url_depth());
-
-        features
-    }
-
-    fn url_depth(&mut self) -> usize {
-        let mut matches: Vec<regex::Match> = Vec::new();
-        let mut num;
-
-        let re = Regex::new(r"[^/]+").unwrap();
-        for c in re.captures_iter(&self.url) {
-            matches.push(c.get(0).unwrap())
-        }
-
-        num = matches.len();
-        if uri_http_or_https(*matches.get(0).unwrap()) {
-            num -= 2;
-        } else {
-            num -= 1;
-        }
-        num
-    }
-
-    fn process_and_extract(&mut self) -> HashMap<String, usize> {
-        let mut features = HashMap::new();
-        let f_tags: Vec<&str> = vec![
-            "p",
-            "ul",
-            "ol",
-            "dl",
-            "div",
-            "pre",
-            "table",
-            "select",
-            "article",
-            "section",
-            "blockquote",
-            "a",
-            "img",
-            "script",
-        ];
-
-        let mut f_checks: Vec<&str> = vec![
-            "text_blocks",
-            "url_depth",
-            "amphtml",
-            "fb_pages",
-            "og_article",
-            "words",
-            "schema_org",
-        ];
-
-        f_checks.append(&mut f_tags.clone());
-        for f in f_checks {
-            features.insert(f.to_string(), 0);
-        }
-
-        let mut sink = Sink {
-            next_id: 1,
-            names: HashMap::new(),
-            level_tracker: HashMap::new(),
+        FeatureExtractor {
+            doc: doc.to_owned(),
+            url: url.to_owned(),
             features,
-        };
-
-        let parser = parse_document(sink, Default::default());
-
-        sink = parser
-            .from_utf8()
-            .read_from(&mut self.doc.as_bytes())
-            .unwrap();
-
-        sink.features
+        }
     }
 }
 
-#[derive(Debug)]
-struct Sink {
-    next_id: usize,
-    names: HashMap<usize, QualName>,
-    features: HashMap<String, usize>,
-    level_tracker: HashMap<usize, usize>,
+fn process_and_extract(doc: &str) -> HashMap<String, u32> {
+    // let f_tags: Vec<&str> = vec![
+    //     "p",
+    //     "ul",
+    //     "ol",
+    //     "dl",
+    //     "div",
+    //     "pre",
+    //     "table",
+    //     "select",
+    //     "article",
+    //     "section",
+    //     "blockquote",
+    //     "a",
+    //     "img",
+    //     "script",
+    // ];
+
+    // let mut f_checks: Vec<&str> = vec![
+    //     "text_blocks",
+    //     "url_depth",
+    //     "amphtml",
+    //     "fb_pages",
+    //     "og_article",
+    //     "words",
+    //     "schema_org",
+    // ];
+
+    let sink = FeaturisingDom {
+        features: HashMap::new(),
+        rcdom: RcDom::default(),
+    };
+
+    let parser = parse_document(sink, Default::default());
+
+    // redefining sink from parser
+    let sink = parser.from_utf8().read_from(&mut doc.as_bytes()).unwrap();
+
+    sink.features
 }
 
-impl Sink {
-    fn get_id(&mut self) -> usize {
-        let id = self.next_id;
-        self.next_id += 2;
-        id
-    }
+fn url_depth(url: &str) -> Result<usize, FeatureExtractorError> {
+    let url_parsed = Url::parse(url)?;
+    url_parsed
+        .path_segments()
+        .map(std::iter::Iterator::count) // want number of segments only
+        .ok_or_else(|| FeatureExtractorError::InvalidUrl(url.to_owned())) // return error
 }
 
-impl TreeSink for Sink {
-    type Handle = usize;
+// #[derive(Debug)]
+struct FeaturisingDom {
+    features: HashMap<String, u32>,
+    pub rcdom: RcDom,
+}
+
+impl TreeSink for FeaturisingDom {
     type Output = Self;
+    type Handle = Handle;
     fn finish(self) -> Self {
         self
-    }
-
-    fn get_document(&mut self) -> usize {
-        0
-    }
-
-    fn same_node(&self, x: &usize, y: &usize) -> bool {
-        x == y
-    }
-
-    fn elem_name(&self, target: &usize) -> ExpandedName {
-        let e = self.names.get(target).expect("not an element").expanded();
-        e
     }
 
     // everytime the parser identifies a new element, our sink will figure out
     // if the element is part of the subset used by our classifier. if that is
     // the case, increases the respective feature counter.
-    fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _: ElementFlags) -> usize {
-        let id = self.get_id();
-        self.names.insert(id, name.clone());
-
+    fn create_element(
+        &mut self,
+        name: QualName,
+        attrs: Vec<Attribute>,
+        flags: ElementFlags,
+    ) -> Handle {
         // increases count on feature map for selected tags
         let elem = name.local.to_string();
-        self.features.entry(elem.clone()).and_modify(|v| *v += 1);
+        self.features
+            .entry(elem.clone())
+            .and_modify(|v| *v += 1)
+            .or_insert(1);
 
         // seaches for `<meta property="{og:},{fb:}..." />`
         if elem == "meta" {
             for a in attrs.clone() {
                 let attr = a.value.to_string();
 
-                if starts_with(&attr, "og:") {
+                if attr.starts_with("og:") {
                     self.features
                         .entry("og_article".to_string())
-                        .and_modify(|v| *v = 1);
+                        .and_modify(|v| *v = 1)
+                        .or_insert(1);
                 }
 
-                if starts_with(&attr, "fb:") {
+                if attr.starts_with("fb:") {
                     self.features
                         .entry("fb_pages".to_string())
-                        .and_modify(|v| *v = 1);
+                        .and_modify(|v| *v = 1)
+                        .or_insert(1);
                 }
             }
         }
@@ -172,31 +149,29 @@ impl TreeSink for Sink {
                 if a.value.to_string() == "amphtml" {
                     self.features
                         .entry("amphtml".to_string())
-                        .and_modify(|v| *v = 1);
+                        .and_modify(|v| *v = 1)
+                        .or_insert(1);
                 }
             }
         }
 
         // checks if element has namespace `ns:schema.org:Article` or `ns:schema.org:NewsArticle`
         for a in attrs.clone() {
-            if starts_with(&a.value.to_string(), "https://schema.org/Article")
-                || starts_with(&a.value.to_string(), "https://schema.org/NewsArticle")
+            if a.value
+                .to_string()
+                .starts_with("https://schema.org/Article")
+                || a.value
+                    .to_string()
+                    .starts_with("https://schema.org/NewsArticle")
             {
                 self.features
                     .entry("schema_org".to_string())
-                    .and_modify(|v| *v = 1);
+                    .and_modify(|v| *v = 1)
+                    .or_insert(1);
             }
         }
 
-        id
-    }
-
-    fn create_comment(&mut self, _: StrTendril) -> usize {
-        self.get_id()
-    }
-
-    fn parse_error(&mut self, msg: Cow<'static, str>) {
-        println!("Err doc parsing: {}", msg);
+        self.rcdom.create_element(name, attrs, flags)
     }
 
     // everytime the append node is required from our sink, it will either
@@ -206,88 +181,122 @@ impl TreeSink for Sink {
     //    the number of words in the text node and add that information to the
     //    feature list. It will also decide whether the text is a `text_block`
     //    and update the feature list accordingly.
-    fn append(&mut self, pid: &usize, child: NodeOrText<usize>) {
-        match child {
-            AppendNode(n) => {
-                // calculates the current node level based on its parent (or
-                // lack of it)
-                let level = match self.level_tracker.get(&pid) {
-                    Some(pl) => pl + 1,
-                    None => 1,
-                };
-                self.level_tracker.insert(n, level);
-            }
-            // calculates `words` and `text_blocks` features
-            AppendText(t) => {
-                let parent_level = self.level_tracker.get(pid).unwrap();
-                let parent_el = self.names.get(pid).unwrap().local.to_string();
+    fn append(&mut self, parent: &Handle, child: NodeOrText<Handle>) {
+        if let AppendText(text) = &child {
+            if let NodeData::Element { name, .. } = &parent.data {
+                let parent_name = name.local.to_string();
 
-                if parent_el == "p" {
+                if parent_name == "p" {
+                    let parent_level = node_depth(parent, 11, 1);
+                    let num_words = text.split_ascii_whitespace().count();
+
                     // words
-                    let text = escape_default(&t);
-                    let num_words: Vec<&str> = text.split(' ').collect();
                     self.features
                         .entry("words".to_string())
-                        .and_modify(|v| *v += num_words.len());
+                        .and_modify(|v| *v += num_words as u32)
+                        .or_insert(num_words as u32);
 
                     // text_blocks
-                    if num_words.len() > 400 && *parent_level > 1 && *parent_level < 11 {
+                    if num_words > 400 && parent_level > 1 && parent_level < 11 {
                         self.features
                             .entry("text_blocks".to_string())
-                            .and_modify(|v| *v += 1);
+                            .and_modify(|v| *v += 1)
+                            .or_insert(1);
                     }
                 }
             }
         }
+
+        self.rcdom.append(parent, child)
     }
 
-    fn add_attrs_if_missing(&mut self, _: &usize, _attrs: Vec<Attribute>) {}
+    // Default TreeSink meethods from rcdom
 
-    // unimplemented traits
+    fn parse_error(&mut self, msg: Cow<'static, str>) {
+        self.rcdom.parse_error(msg);
+    }
+
+    fn get_document(&mut self) -> Handle {
+        self.rcdom.get_document()
+    }
+
+    fn get_template_contents(&mut self, target: &Handle) -> Handle {
+        self.rcdom.get_template_contents(target)
+    }
+
+    fn set_quirks_mode(&mut self, mode: QuirksMode) {
+        self.rcdom.set_quirks_mode(mode)
+    }
+
+    fn same_node(&self, x: &Handle, y: &Handle) -> bool {
+        self.rcdom.same_node(x, y)
+    }
+
+    fn elem_name<'a>(&'a self, target: &'a Handle) -> ExpandedName<'a> {
+        self.rcdom.elem_name(target)
+    }
+
+    fn create_comment(&mut self, text: StrTendril) -> Handle {
+        self.rcdom.create_comment(text)
+    }
+
+    fn create_pi(&mut self, target: StrTendril, content: StrTendril) -> Handle {
+        self.rcdom.create_pi(target, content)
+    }
+
+    fn append_before_sibling(&mut self, sibling: &Handle, child: NodeOrText<Handle>) {
+        self.rcdom.append_before_sibling(sibling, child)
+    }
+
     fn append_based_on_parent_node(
         &mut self,
-        _element: &usize,
-        _prev_element: &usize,
-        _new_node: NodeOrText<usize>,
+        element: &Handle,
+        prev_element: &Handle,
+        child: NodeOrText<Handle>,
     ) {
-        unimplemented!();
+        self.rcdom
+            .append_based_on_parent_node(element, prev_element, child)
     }
-    fn get_template_contents(&mut self, _: &usize) -> usize {
-        unimplemented!();
+
+    fn append_doctype_to_document(
+        &mut self,
+        name: StrTendril,
+        public_id: StrTendril,
+        system_id: StrTendril,
+    ) {
+        self.rcdom
+            .append_doctype_to_document(name, public_id, system_id);
     }
-    fn set_quirks_mode(&mut self, _mode: QuirksMode) {}
-    fn append_doctype_to_document(&mut self, _: StrTendril, _: StrTendril, _: StrTendril) {}
-    fn remove_from_parent(&mut self, _target: &usize) {
-        unimplemented!();
+
+    fn add_attrs_if_missing(&mut self, target: &Handle, attrs: Vec<Attribute>) {
+        self.rcdom.add_attrs_if_missing(target, attrs);
     }
-    fn reparent_children(&mut self, _node: &usize, _new_parent: &usize) {
-        unimplemented!();
+
+    fn remove_from_parent(&mut self, target: &Handle) {
+        self.rcdom.remove_from_parent(target);
     }
-    fn create_pi(&mut self, _: StrTendril, _: StrTendril) -> usize {
-        unimplemented!()
+
+    fn reparent_children(&mut self, node: &Handle, new_parent: &Handle) {
+        self.rcdom.reparent_children(node, new_parent);
     }
-    fn append_before_sibling(&mut self, _sibling: &usize, _new_node: NodeOrText<usize>) {
-        unimplemented!();
+
+    fn mark_script_already_started(&mut self, target: &Handle) {
+        self.rcdom.mark_script_already_started(target);
     }
 }
 
-// helper functions
-fn uri_http_or_https(m: regex::Match) -> bool {
-    if m.end() == 5 || m.end() == 6 {
-        true
+fn node_depth(node: &Handle, max_depth: usize, current_depth: usize) -> usize {
+    if current_depth > max_depth {
+        return current_depth;
+    }
+    if let Some(parent) = node.parent.take() {
+        if let Some(strong_parent) = parent.upgrade() {
+            node_depth(&strong_parent, max_depth, current_depth + 1)
+        } else {
+            current_depth
+        }
     } else {
-        false
-    }
-}
-
-pub fn escape_default(s: &str) -> String {
-    s.chars().flat_map(|c| c.escape_default()).collect()
-}
-
-pub fn starts_with(attr: &str, pattern: &str) -> bool {
-    match Regex::new(pattern).unwrap().captures(&attr) {
-        Some(_) => true,
-        None => false,
+        current_depth
     }
 }
 
@@ -297,20 +306,15 @@ mod tests {
 
     #[test]
     fn test_depth_url() {
-        let mut url = "http://url.com".to_string();
-        let mut ext1 = FeatureExtractor::from_document("".to_string(), url);
-        assert_eq!(ext1.url_depth(), 0);
+        assert_eq!(url_depth("http://url.com"), Ok(1));
+        assert_eq!(url_depth("http://url.com/"), Ok(1));
 
-        url = "http://url.com/".to_string();
-        let mut ext2 = FeatureExtractor::from_document("".to_string(), url);
-        assert_eq!(ext2.url_depth(), 0);
+        assert_eq!(url_depth("http://url.com/another/path/here?test"), Ok(3));
 
-        url = "http://url.com/another/path/here?test".to_string();
-        let mut ext3 = FeatureExtractor::from_document("".to_string(), url);
-        assert_eq!(ext3.url_depth(), 3);
-
-        url = "www.url.com/another/path".to_string();
-        let mut ext4 = FeatureExtractor::from_document("".to_string(), url);
-        assert_eq!(ext4.url_depth(), 2);
+        assert_eq!(url_depth("https://www.url.com/another/path"), Ok(2));
+        assert!(matches!(
+            url_depth("www.url.com/another/path"),
+            Err(FeatureExtractorError::InvalidUrl(_))
+        ));
     }
 }

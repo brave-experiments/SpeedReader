@@ -9,7 +9,7 @@ pub struct Classifier {
 }
 
 impl Classifier {
-    pub fn from_feature_map(features: HashMap<String, usize>) -> Classifier {
+    pub fn from_feature_map(features: HashMap<String, u32>) -> Classifier {
         //let features_list: [f32; N_FEATURES] = [0.0; N_FEATURES];
 
         let features_list = convert_map(features);
@@ -17,13 +17,12 @@ impl Classifier {
     }
 
     pub fn classify(&self) -> usize {
-        let result = predict(&self.features_list);
-        result
+        predict(&self.features_list)
     }
 }
 
 // helpers
-fn convert_map(map: HashMap<String, usize>) -> [f32; N_FEATURES] {
+fn convert_map(map: HashMap<String, u32>) -> [f32; N_FEATURES] {
     let mut slice: [f32; N_FEATURES] = [0.0; N_FEATURES];
 
     slice[0] = map["img"] as f32;

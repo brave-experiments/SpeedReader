@@ -12,3 +12,4 @@ Cargo.lock
 # C++ archived version
 /cpp-archive/build/
 
+*.code-workspace
