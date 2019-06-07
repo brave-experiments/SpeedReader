@@ -11,7 +11,7 @@ fn main() {
 
     let data = fs::read_to_string(doc_path).expect("err to string");
 
-    let extractor = FeatureExtractor::parse_document(&data, url);
+    let extractor = FeatureExtractor::parse_document(&mut data.as_bytes(), url);
     let result = extractor.features;
 
     for (k, v) in result.iter() {

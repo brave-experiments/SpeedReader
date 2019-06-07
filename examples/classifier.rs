@@ -11,9 +11,9 @@ fn main() {
 
     let data = fs::read_to_string(doc_path).expect("err to string");
 
-    let extractor = FeatureExtractor::parse_document(&data, url);
+    let extractor = FeatureExtractor::parse_document(&mut data.as_bytes(), url);
     let features = extractor.features;
 
-    let result = Classifier::from_feature_map(features).classify();
+    let result = Classifier::from_feature_map(&features).classify();
     println!("{}", result);
 }

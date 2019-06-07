@@ -1,16 +1,16 @@
-mod predictor;
+mod model;
 pub mod feature_extractor;
 use std::collections::HashMap;
 
-pub const N_FEATURES: usize = 21;
-pub const N_CLASSES: usize = 2;
+use model::N_FEATURES;
+use model::predict;
 
 pub struct Classifier {
     features_list: [f32; N_FEATURES],
 }
 
 impl Classifier {
-    pub fn from_feature_map(features: HashMap<String, u32>) -> Classifier {
+    pub fn from_feature_map(features: &HashMap<String, u32>) -> Classifier {
         //let features_list: [f32; N_FEATURES] = [0.0; N_FEATURES];
 
         let features_list = convert_map(features);
@@ -18,36 +18,36 @@ impl Classifier {
     }
 
     pub fn classify(&self) -> usize {
-        predictor::predict(&self.features_list)
+        predict(&self.features_list)
     }
 }
 
 // helpers
-fn convert_map(map: HashMap<String, u32>) -> [f32; N_FEATURES] {
+fn convert_map(map: &HashMap<String, u32>) -> [f32; N_FEATURES] {
     let mut slice: [f32; N_FEATURES] = [0.0; N_FEATURES];
 
-    slice[0] = map["img"] as f32;
-    slice[1] = map["a"] as f32;
-    slice[2] = map["script"] as f32;
-    slice[3] = map["text_blocks"] as f32;
-    slice[4] = map["words"] as f32;
-    slice[5] = map["blockquote"] as f32;
-    slice[6] = map["dl"] as f32;
-    slice[7] = map["div"] as f32;
-    slice[8] = map["ol"] as f32;
-    slice[9] = map["p"] as f32;
-    slice[10] = map["pre"] as f32;
-    slice[11] = map["table"] as f32;
-    slice[12] = map["ul"] as f32;
-    slice[13] = map["select"] as f32;
-    slice[14] = map["article"] as f32;
-    slice[15] = map["section"] as f32;
-    slice[16] = map["url_depth"] as f32;
-    slice[17] = map["amphtml"] as f32;
-    slice[18] = map["fb_pages"] as f32;
-    slice[19] = map["og_article"] as f32;
-    slice[20] = map["schema_org"] as f32;
-    //slice[21] = map["file_size"] as f32;
+    slice[0] = map.get("img").cloned().unwrap_or(0) as f32;
+    slice[1] = map.get("a").cloned().unwrap_or(0) as f32;
+    slice[2] = map.get("script").cloned().unwrap_or(0) as f32;
+    slice[3] = map.get("text_blocks").cloned().unwrap_or(0) as f32;
+    slice[4] = map.get("words").cloned().unwrap_or(0) as f32;
+    slice[5] = map.get("blockquote").cloned().unwrap_or(0) as f32;
+    slice[6] = map.get("dl").cloned().unwrap_or(0) as f32;
+    slice[7] = map.get("div").cloned().unwrap_or(0) as f32;
+    slice[8] = map.get("ol").cloned().unwrap_or(0) as f32;
+    slice[9] = map.get("p").cloned().unwrap_or(0) as f32;
+    slice[10] = map.get("pre").cloned().unwrap_or(0) as f32;
+    slice[11] = map.get("table").cloned().unwrap_or(0) as f32;
+    slice[12] = map.get("ul").cloned().unwrap_or(0) as f32;
+    slice[13] = map.get("select").cloned().unwrap_or(0) as f32;
+    slice[14] = map.get("article").cloned().unwrap_or(0) as f32;
+    slice[15] = map.get("section").cloned().unwrap_or(0) as f32;
+    slice[16] = map.get("url_depth").cloned().unwrap_or(0) as f32;
+    slice[17] = map.get("amphtml").cloned().unwrap_or(0) as f32;
+    slice[18] = map.get("fb_pages").cloned().unwrap_or(0) as f32;
+    slice[19] = map.get("og_article").cloned().unwrap_or(0) as f32;
+    slice[20] = map.get("schema_org").cloned().unwrap_or(0) as f32;
+    //slice[21] = map.get("file_size").cloned().unwrap_or(0) as f32;
 
     slice
 }
