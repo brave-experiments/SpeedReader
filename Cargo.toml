@@ -1,13 +1,22 @@
 [package]
 name = "speedreader"
 version = "0.1.0"
-authors = ["gpestana <gpestana@brave.com>"]
+authors = [
+    "gpestana <gpestana@brave.com>",
+    "Andrius Aucinas <aaucinas@brave.com>"
+]
 edition = "2018"
+
+[workspace]
+members = [
+    "src/readability"
+]
 
 [dependencies]
 html5ever = "0.23.0"
 regex = "1"
 url = "1.7"
+readability = { path = "src/readability" }
 
 [dev-dependencies]
 matches = "0.1"
