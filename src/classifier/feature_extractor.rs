@@ -197,13 +197,14 @@ impl TreeSink for FeaturisingDom {
                         .entry("words".to_string())
                         .and_modify(|v| *v += num_words as u32)
                         .or_insert(num_words as u32);
+                    
+                    let text_blocks = self.features
+                        .entry("text_blocks".to_string())
+                        .or_insert(0);
 
                     // text_blocks
                     if num_words > 400 && parent_level > 1 && parent_level < 11 {
-                        self.features
-                            .entry("text_blocks".to_string())
-                            .and_modify(|v| *v += 1)
-                            .or_insert(1);
+                        *text_blocks += 1;
                     }
                 }
             }
