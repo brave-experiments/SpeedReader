@@ -18,6 +18,9 @@ regex = "1"
 url = "1.7"
 readability = { path = "src/readability" }
 
+[build-dependencies]
+regex = "1"
+
 [dev-dependencies]
 matches = "0.1"
 
