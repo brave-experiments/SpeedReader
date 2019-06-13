@@ -33,7 +33,10 @@ pub fn extract_dom(mut dom: &mut RcDom, url: &Url) -> Result<Product, Error> {
     let mut candidates = BTreeMap::new();
     let mut nodes      = BTreeMap::new();
     let handle = dom.document.clone();
-    scorer::preprocess(&mut dom, handle.clone(), &mut title);
+
+    // extracts title (if it exists) pre-processes the DOM by removing script
+    // tags, css, links
+    scorer::preprocess(&mut dom, handle.clone(), &mut title);   
     scorer::find_candidates(&mut dom, Path::new("/"), handle.clone(), &mut candidates, &mut nodes);
     let mut id: &str = "/";
     let mut top_candidate: &Candidate = &Candidate {
@@ -72,7 +75,7 @@ mod tests {
     #[test]
     fn test_extract_title() {
         assert!(true);
-        let mut file = File::open("./data/title.html").unwrap();
+        let mut file = File::open("./tests/samples/simple_title/title.html").unwrap();
         let url = Url::parse("https://example.com").unwrap();
         let product = extract(&mut file, &url).unwrap();
         assert_eq!(product.title, "This is title");

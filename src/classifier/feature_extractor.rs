@@ -25,6 +25,7 @@ impl From<url::ParseError> for FeatureExtractorError {
     }
 }
 
+//#[derive(PartialEq)]
 pub struct FeatureExtractor {
     pub url: Url,
     pub dom: RcDom,
@@ -32,13 +33,19 @@ pub struct FeatureExtractor {
 }
 
 impl FeatureExtractor {
-    pub fn parse_document<R>(doc: &mut R, url: &str) -> FeatureExtractor where R: Read {
+    pub fn parse_document<R>(doc: &mut R, url: &str) -> FeatureExtractor
+    where
+        R: Read,
+    {
         let url_parsed = Url::parse(url).unwrap();
 
         let dom_features = process_and_extract(doc);
 
         let mut features = dom_features.features;
-        features.insert("url_depth".to_string(), url_depth(&url_parsed).unwrap() as u32);
+        features.insert(
+            "url_depth".to_string(),
+            url_depth(&url_parsed).unwrap() as u32,
+        );
 
         FeatureExtractor {
             url: url_parsed,
@@ -48,7 +55,10 @@ impl FeatureExtractor {
     }
 }
 
-fn process_and_extract<R>(mut doc: &mut R) -> FeaturisingDom where R: Read {
+fn process_and_extract<R>(mut doc: &mut R) -> FeaturisingDom
+where
+    R: Read,
+{
     // let f_tags: Vec<&str> = vec![
     //     "p",
     //     "ul",
@@ -197,10 +207,8 @@ impl TreeSink for FeaturisingDom {
                         .entry("words".to_string())
                         .and_modify(|v| *v += num_words as u32)
                         .or_insert(num_words as u32);
-                    
-                    let text_blocks = self.features
-                        .entry("text_blocks".to_string())
-                        .or_insert(0);
+
+                    let text_blocks = self.features.entry("text_blocks".to_string()).or_insert(0);
 
                     // text_blocks
                     if num_words > 400 && parent_level > 1 && parent_level < 11 {
@@ -312,9 +320,15 @@ mod tests {
         assert_eq!(url_depth(&Url::parse("http://url.com").unwrap()), Ok(1));
         assert_eq!(url_depth(&Url::parse("http://url.com/").unwrap()), Ok(1));
 
-        assert_eq!(url_depth(&Url::parse("http://url.com/another/path/here?test").unwrap()), Ok(3));
+        assert_eq!(
+            url_depth(&Url::parse("http://url.com/another/path/here?test").unwrap()),
+            Ok(3)
+        );
 
-        assert_eq!(url_depth(&Url::parse("https://www.url.com/another/path").unwrap()), Ok(2));
+        assert_eq!(
+            url_depth(&Url::parse("https://www.url.com/another/path").unwrap()),
+            Ok(2)
+        );
         assert!(matches!(
             url_depth(&Url::parse("data:text/plain,HelloWorld").unwrap()),
             Err(FeatureExtractorError::InvalidUrl(_))

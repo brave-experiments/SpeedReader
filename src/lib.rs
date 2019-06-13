@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 #![forbid(unsafe_code)]
-
 extern crate url;
 extern crate html5ever;
 

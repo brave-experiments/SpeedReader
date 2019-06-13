@@ -13,3 +13,5 @@ Cargo.lock
 /cpp-archive/build/
 
 *.code-workspace
+
+.DS_Store
