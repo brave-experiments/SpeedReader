@@ -1,9 +1,9 @@
-mod model;
 pub mod feature_extractor;
+mod model;
 use std::collections::HashMap;
 
-use model::N_FEATURES;
 use model::predict;
+use model::N_FEATURES;
 
 pub struct Classifier {
     features_list: [f32; N_FEATURES],
