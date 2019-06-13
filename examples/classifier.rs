@@ -1,5 +1,5 @@
-use speedreader::classifier::Classifier;
 use speedreader::classifier::feature_extractor::FeatureExtractor;
+use speedreader::classifier::Classifier;
 use std::fs;
 
 fn main() {
