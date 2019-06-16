@@ -20,24 +20,20 @@ use html5ever::tree_builder::{NodeOrText, ElementFlags};
 use dom;
 
 pub static PUNCTUATIONS_REGEX: &'static str = r"([、。，．！？]|\.[^A-Za-z0-9]|,[^0-9]|!|\?)";
-pub static UNLIKELY_CANDIDATES: &'static str =
-    "combx|comment|community|disqus|extra|foot|header|menu\
-     |remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate\
-     |pagination|pager|popup|tweet|twitter\
-     |ssba";
-pub static LIKELY_CANDIDATES: &'static str = "and|article|body|column|main|shadow\
-                                              |content|hentry";
-pub static POSITIVE_CANDIDATES: &'static str =
-    "article|body|content|entry|hentry|main|page\
-     |pagination|post|text|blog|story";
-pub static NEGATIVE_CANDIDATES: &'static str =
-    "combx|comment|com|contact|foot|footer|footnote\
-     |masthead|media|meta|outbrain|promo|related\
-     |scroll|shoutbox|sidebar|sponsor|shopping\
-     |tags|tool|widget|form|textfield\
-     |uiScale|hidden";
-static BLOCK_CHILD_TAGS: [&'static str; 10] = [
+pub static UNLIKELY_CANDIDATES: &'static str = "-ad-|ai2html|banner\
+    |breadcrumbs|combx|comment|community|cover-wrap|disqus|extra|foot|gdpr\
+    |header|legends|menu|related|remark|replies|rss|shoutbox|sidebar|skyscraper\
+    |social|sponsor|supplemental|ad-break|agegate|pagination|pager|popup\
+    |yom-remote";
+pub static LIKELY_CANDIDATES: &'static str = "and|article|body|column|main\
+    |shadow";
+pub static POSITIVE_CANDIDATES: &'static str = "article|body|content|entry\
+        |hentry|h-entry|main|page|pagination|post|text|blog|story";
+pub static NEGATIVE_CANDIDATES: &'static str = "article|body|content|entry\
+        |hentry|h-entry|main|page|pagination|post|text|blog|story";
+static BLOCK_CHILD_TAGS: [&'static str; 11] = [
     "a", "blockquote", "dl", "div", "img", "ol", "p", "pre", "table", "ul",
+    "select",
 ];
 lazy_static! {
     static ref PUNCTUATIONS: Regex = Regex::new(PUNCTUATIONS_REGEX).unwrap();
@@ -177,7 +173,7 @@ pub fn preprocess(mut dom: &mut RcDom, handle: Handle, mut title: &mut String) -
                 } else {
                     br_count = 0
                 }
-            },
+            }
             Text { ref contents } => {
                 let s = contents.borrow();
                 if br_count >= 2 && s.trim().len() > 0 {
