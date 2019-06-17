@@ -1,6 +1,7 @@
 extern crate url;
 extern crate readability;
 extern crate speedreader;
+extern crate html5ever;
 
 use readability::extractor::extract;
 use speedreader::classifier::feature_extractor::FeatureExtractor;
@@ -8,7 +9,77 @@ use std::fs::File;
 use std::io::Read;
 use url::Url;
 
+use std::rc::Rc;
+use std::vec::Vec;
+use html5ever::rcdom::{RcDom, Node, Handle};
+use html5ever::rcdom::NodeData::{Element, Text};
+
 static SAMPLES_PATH: &'static str = "./tests/samples/";
+
+// recursively extracts all text of leaf nodes into a string for comparison
+pub fn extract_text(handle: Handle, text: &mut String) {
+    for child in handle.children.borrow().iter() {
+        let c = child.clone();
+        match c.data {
+            Text { ref contents } => {
+                text.push_str(contents.borrow().trim());
+            },
+            Element { .. } => {
+                extract_text(child.clone(), text);
+            },
+            _ => ()
+        }
+    }
+}
+
+// recursively collects values of nodes with a certain tuple (tag_id, attribute_id)
+// into a vector of strings for comparison
+fn stripped_content(handle: Handle, tag_name: &str, attr_name: &str, nodes: &mut Vec<Rc<Node>>, 
+                    values: &mut Vec<String>) {
+
+    for child in handle.children.borrow().iter() {
+        let c = child.clone();
+        match c.data {
+            Element { ref name, ref attrs, .. } => {
+                let t = name.local.as_ref();
+                if t.to_lowercase() == tag_name {
+                    nodes.push(child.clone());
+
+                    for attr in attrs.borrow().iter() {
+                        if attr.name.local.as_ref() == attr_name.clone() {
+                            values.push(attr.value.to_string());
+                        }
+                    } 
+                };
+                stripped_content(child.clone(), tag_name.clone(), attr_name.clone(), nodes, values);
+            },
+            _ => ()
+        }
+    }
+}
+
+// stricly compares if DOMs keep the same number and value of the tuple
+// (tag_name, attr_name)
+fn tags_match_strict(d1: RcDom, d2: RcDom, tag_name: &str, attr_name: &str) -> bool {
+    let mut values_d1 = Vec::new();
+    let mut values_d2 = Vec::new(); 
+    stripped_content(d1.document.clone(), tag_name, attr_name, &mut Vec::new(), &mut values_d1);
+    stripped_content(d1.document.clone(), "img", "src", &mut Vec::new(), &mut values_d2);
+
+    if values_d1.len() != values_d2.len() {
+        false
+    }
+
+    values_d1.sort();
+    values_d2.sort();
+
+    for (i, _) in values_d1.clone() {
+        if values_d1[i] != values_d2[i] {
+            false
+        } 
+    }
+    true
+}
 
 fn load_test_files(test_name: &str) -> String{
     let mut expected = "".to_owned();
@@ -33,117 +104,134 @@ mod test {
                  // opens and parses the expected final result into a rcdom 
                  // (for comparing with the result)
                  let expected_string = load_test_files(stringify!($name));
-                 let mut expected = FeatureExtractor::parse_document(
+                 let expected = FeatureExtractor::parse_document(
                     &mut expected_string.as_bytes(), &url.to_string()
                  );
 
                  // uses the mapper build the mapper based on the source HTML
                  // document
                  let product = extract(&mut source_f, &url).unwrap();
-                 let mut result = FeatureExtractor::parse_document(
+                 let result = FeatureExtractor::parse_document(
                    &mut product.content.as_bytes(), &url.to_string()
                  );
 
-                 // how to compare dom documents?
-                 assert_eq!(
-                    expected.dom.document.data, 
-                    result.dom.document.data
-                );
+                 let atags_match = tags_match_strict(
+                     expected.dom.document.clone(), 
+                     result.dom.document.clone(), "a", "href");
+
+                assert(atags_match, "Node values of <a href=''> do not strictly match");
+
+                 let imgtags_match = tags_match_strict(
+                     expected.dom.document.clone(), 
+                     result.dom.document.clone(), "img", "src");
+
+                assert(imgtags_match, "Node values of <img src=''> do not strictly match");
+
+                // note: now we can define tests similar to tags_match_strict 
+                // but that are less strict. e.g. number of nodes in dom of a 
+                // certain (tag, attr) may be differ by x)
+
+                // compares full flattened text nodes
+                let mut text_result = String::new();
+                extract_text(result.dom.document.clone(), &mut text_result);
+
+                let mut text_expected = String::new();
+                extract_text(expected.dom.document.clone(), &mut text_expected);
+
+                assert_eq!(text_result, text_expected, "Falttened texts in p tags do not match");
             }
         };
     }
 }
 
+test!(aclu);
+test!(ars_1);
+test!(base_url);
+test!(base_url_base_element);
+test!(base_url_base_element_relative);
+test!(basic_tags_cleaning);
+test!(bbc_1);
+test!(blogger);
+test!(breitbart);
+test!(bug_1255978);
+test!(buzzfeed_1);
+test!(citylab_1);
+test!(clean_links);
+test!(cnet);
+test!(cnet_svg_classes);
+test!(cnn);
+test!(comment_inside_script_parsing);
+test!(daringfireball_1);
+test!(ehow_1);
+test!(ehow_2);
+test!(embedded_videos);
+test!(engadget);
+test!(folha);
+test!(gmw);
 test!(guardian_1);
-
-//test!(aclu);
-//test!(ars_1);
-//test!(base_url);
-//test!(base_url_base_element);
-//test!(base_url_base_element_relative);
-//test!(basic_tags_cleaning);
-//test!(bbc_1);
-//test!(blogger);
-//test!(breitbart);
-//test!(bug_1255978);
-//test!(buzzfeed_1);
-//test!(citylab_1);
-//test!(clean_links);
-//test!(cnet);
-//test!(cnet_svg_classes);
-//test!(cnn);
-//test!(comment_inside_script_parsing);
-//test!(daringfireball_1);
-//test!(ehow_1);
-//test!(ehow_2);
-//test!(embedded_videos);
-//test!(engadget);
-//test!(folha);
-//test!(gmw);
-//test!(guardian_1);
-//test!(heise);
-//test!(herald_sun_1);
-//test!(hidden_nodes);
-//test!(hukumusume);
-//test!(iab_1);
-//test!(ietf_1);
-//test!(keep_images);
-//test!(keep_tabular_data);
-//test!(la_nacion);
-//test!(lemonde_1);
-//test!(liberation_1);
-//test!(lifehacker_post_comment_load);
-//test!(lifehacker_working);
-//test!(links_in_tables);
-//test!(lwn_1);
-//test!(medicalnewstoday);
-//test!(medium_1);
-//test!(medium_3);
-//test!(mercurial);
-//test!(metadata_content_missing);
-//test!(missing_paragraphs);
-//test!(mozilla_1);
-//test!(mozilla_2);
-//test!(msn);
-//test!(normalize_spaces);
-//test!(nytimes_1);
-//test!(nytimes_2);
-//test!(nytimes_3);
-//test!(nytimes_4);
-//test!(pixnet);
-//test!(qq);
-//test!(remove_extra_brs);
-//test!(remove_extra_paragraphs);
-//test!(remove_script_tags);
-//test!(reordering_paragraphs);
-//test!(replace_brs);
-//test!(replace_font_tags);
-//test!(rtl_1);
-//test!(rtl_2);
-//test!(rtl_3);
-//test!(rtl_4);
-//test!(salon_1);
-//test!(seattletimes_1);
-//test!(simplyfound_3);
-//test!(social_buttons);
-//test!(style_tags_removal);
-//test!(svg_parsing);
-//test!(table_style_attributes);
-//test!(telegraph);
-//test!(title_and_h1_discrepancy);
-//test!(tmz_1);
-//test!(tumblr);
-//test!(videos_1);
-//test!(videos_2);
-//test!(wapo_1);
-//test!(wapo_2);
-//test!(webmd_1);
-//test!(webmd_2);
-//test!(wikipedia);
-//test!(wordpress);
-//test!(yahoo_1);
-//test!(yahoo_2);
-//test!(yahoo_3);
-//test!(yahoo_4);
-//test!(youth);
+test!(heise);
+test!(herald_sun_1);
+test!(hidden_nodes);
+test!(hukumusume);
+test!(iab_1);
+test!(ietf_1);
+test!(keep_images);
+test!(keep_tabular_data);
+test!(la_nacion);
+test!(lemonde_1);
+test!(liberation_1);
+test!(lifehacker_post_comment_load);
+test!(lifehacker_working);
+test!(links_in_tables);
+test!(lwn_1);
+test!(medicalnewstoday);
+test!(medium_1);
+test!(medium_3);
+test!(mercurial);
+test!(metadata_content_missing);
+test!(missing_paragraphs);
+test!(mozilla_1);
+test!(mozilla_2);
+test!(msn);
+test!(normalize_spaces);
+test!(nytimes_1);
+test!(nytimes_2);
+test!(nytimes_3);
+test!(nytimes_4);
+test!(pixnet);
+test!(qq);
+test!(remove_extra_brs);
+test!(remove_extra_paragraphs);
+test!(remove_script_tags);
+test!(reordering_paragraphs);
+test!(replace_brs);
+test!(replace_font_tags);
+test!(rtl_1);
+test!(rtl_2);
+test!(rtl_3);
+test!(rtl_4);
+test!(salon_1);
+test!(seattletimes_1);
+test!(simplyfound_3);
+test!(social_buttons);
+test!(style_tags_removal);
+test!(svg_parsing);
+test!(table_style_attributes);
+test!(telegraph);
+test!(title_and_h1_discrepancy);
+test!(tmz_1);
+test!(tumblr);
+test!(videos_1);
+test!(videos_2);
+test!(wapo_1);
+test!(wapo_2);
+test!(webmd_1);
+test!(webmd_2);
+test!(wikipedia);
+test!(wordpress);
+test!(yahoo_1);
+test!(yahoo_2);
+test!(yahoo_3);
+test!(yahoo_4);
+test!(youth);
 

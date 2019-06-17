@@ -25,6 +25,7 @@ impl From<url::ParseError> for FeatureExtractorError {
     }
 }
 
+//#[derive(PartialEq)]
 pub struct FeatureExtractor {
     pub url: Url,
     pub dom: RcDom,
