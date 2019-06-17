@@ -60,22 +60,22 @@ fn stripped_content(handle: Handle, tag_name: &str, attr_name: &str, nodes: &mut
 
 // stricly compares if DOMs keep the same number and value of the tuple
 // (tag_name, attr_name)
-fn tags_match_strict(d1: RcDom, d2: RcDom, tag_name: &str, attr_name: &str) -> bool {
+fn tags_match_strict(d1: Handle, d2: Handle, tag_name: &str, attr_name: &str) -> bool {
     let mut values_d1 = Vec::new();
     let mut values_d2 = Vec::new(); 
-    stripped_content(d1.document.clone(), tag_name, attr_name, &mut Vec::new(), &mut values_d1);
-    stripped_content(d1.document.clone(), "img", "src", &mut Vec::new(), &mut values_d2);
+    stripped_content(d1, tag_name, attr_name, &mut Vec::new(), &mut values_d1);
+    stripped_content(d2, tag_name, attr_name, &mut Vec::new(), &mut values_d2);
 
     if values_d1.len() != values_d2.len() {
-        false
+        return false;
     }
 
     values_d1.sort();
     values_d2.sort();
 
-    for (i, _) in values_d1.clone() {
+    for (i, _) in values_d1.clone().iter().enumerate() {
         if values_d1[i] != values_d2[i] {
-            false
+            return false;
         } 
     }
     true
@@ -119,13 +119,13 @@ mod test {
                      expected.dom.document.clone(), 
                      result.dom.document.clone(), "a", "href");
 
-                assert(atags_match, "Node values of <a href=''> do not strictly match");
+                assert!(atags_match, "Node values of <a href=''> do not strictly match");
 
                  let imgtags_match = tags_match_strict(
                      expected.dom.document.clone(), 
                      result.dom.document.clone(), "img", "src");
 
-                assert(imgtags_match, "Node values of <img src=''> do not strictly match");
+                assert!(imgtags_match, "Node values of <img src=''> do not strictly match");
 
                 // note: now we can define tests similar to tags_match_strict 
                 // but that are less strict. e.g. number of nodes in dom of a 
