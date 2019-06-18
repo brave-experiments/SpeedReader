@@ -11,10 +11,42 @@ use url::Url;
 
 use std::rc::Rc;
 use std::vec::Vec;
-use html5ever::rcdom::{RcDom, Node, Handle};
+use html5ever::rcdom::{Node, Handle};
 use html5ever::rcdom::NodeData::{Element, Text};
 
 static SAMPLES_PATH: &'static str = "./tests/samples/";
+
+
+pub fn extract_flattened_tree(handle: Handle, tags_attrs: Vec<(&str, &str)>, 
+                               flattened_nodes: &mut Vec<Rc<Node>>) -> Vec<Rc<Node>> {
+    for child in handle.children.borrow().iter() {
+        let c = child.clone();
+        match c.data {
+            Text { .. } => {
+                flattened_nodes.push(c.clone());
+            },
+            Element { ref name, ref attrs, .. } => {
+                let t = name.local.as_ref();
+                for a in attrs.borrow().iter() {
+                    let t = t.to_lowercase();
+                    let a = a.value.to_string().to_lowercase();
+
+                    // check if current node name and attr match expected
+                    for ta in tags_attrs.clone() {
+                        let (tag_name, attr_name): (&str, &str) = ta;
+                        if t == tag_name && a == attr_name {
+                            flattened_nodes.push(c.clone());
+                        }
+                    }
+                }
+                // if type Element, traverse to children in next iteration
+                extract_flattened_tree(child.clone(), tags_attrs.clone(), flattened_nodes);
+            },
+            _ => (),
+        }
+    }
+    flattened_nodes.to_vec()
+}
 
 // recursively extracts all text of leaf nodes into a string for comparison
 pub fn extract_text(handle: Handle, text: &mut String) {
@@ -81,6 +113,24 @@ fn tags_match_strict(d1: Handle, d2: Handle, tag_name: &str, attr_name: &str) ->
     true
 }
 
+// stricly compares if flattened tree with subset of (tags, attrs) match
+fn flattened_tree_match_strict(d1: Handle, d2: Handle, tags_attrs: Vec<(&str, &str)>) -> bool {
+    let ftree1 = extract_flattened_tree(d1, tags_attrs.clone(), &mut Vec::new());     
+    let ftree2 = extract_flattened_tree(d2, tags_attrs, &mut Vec::new());     
+
+    if ftree1.len() != ftree2.len() {
+        return false;
+    }
+
+    // #TODO: compare nodes' content
+    //for (i, _) in ftree1.clone().iter().enumerate() {
+    //   if ftree1[i] != ftree2[i] {
+    //        return false;
+    //} 
+    
+    true
+}
+
 fn load_test_files(test_name: &str) -> String{
     let mut expected = "".to_owned();
     let mut exp_f = File::open(format!("{}/{}/expected.html", SAMPLES_PATH, test_name)).unwrap();
@@ -115,30 +165,42 @@ mod test {
                    &mut product.content.as_bytes(), &url.to_string()
                  );
 
+                 // checks full flattened tree for a subset of (tags, attrs)
+                 //let mut tags_attrs: Vec<(&str, &str)> = Vec::new();
+                 //tags_attrs.push(("a", "href"));
+                 //tags_attrs.push(("img", "src"));
+
+                 //let flattened_tree_match = flattened_tree_match_strict(
+                 //   expected.dom.document.clone(),
+                 //   result.dom.document.clone(),
+                 //   tags_attrs);
+
+                 //assert!(flattened_tree_match, "Full flattened trees do not strictly match");
+                 
                  let atags_match = tags_match_strict(
                      expected.dom.document.clone(), 
                      result.dom.document.clone(), "a", "href");
 
-                assert!(atags_match, "Node values of <a href=''> do not strictly match");
+                 assert!(atags_match, "Node values of <a href=''> do not strictly match");
 
                  let imgtags_match = tags_match_strict(
                      expected.dom.document.clone(), 
                      result.dom.document.clone(), "img", "src");
 
-                assert!(imgtags_match, "Node values of <img src=''> do not strictly match");
+                 assert!(imgtags_match, "Node values of <img src=''> do not strictly match");
 
-                // note: now we can define tests similar to tags_match_strict 
-                // but that are less strict. e.g. number of nodes in dom of a 
-                // certain (tag, attr) may be differ by x)
+                 // note: now we can define tests similar to tags_match_strict 
+                 // but that are less strict. e.g. number of nodes in dom of a 
+                 // certain (tag, attr) may be differ by x)
 
-                // compares full flattened text nodes
-                let mut text_result = String::new();
-                extract_text(result.dom.document.clone(), &mut text_result);
+                 // compares full flattened text nodes
+                 let mut text_result = String::new();
+                 extract_text(result.dom.document.clone(), &mut text_result);
 
-                let mut text_expected = String::new();
-                extract_text(expected.dom.document.clone(), &mut text_expected);
+                 let mut text_expected = String::new();
+                 extract_text(expected.dom.document.clone(), &mut text_expected);
 
-                assert_eq!(text_result, text_expected, "Falttened texts in p tags do not match");
+                 assert_eq!(text_result, text_expected, "Falttened texts in p tags do not match");
             }
         };
     }
