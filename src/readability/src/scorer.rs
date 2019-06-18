@@ -26,7 +26,8 @@ pub static UNLIKELY_CANDIDATES: &'static str = "-ad-|ai2html|banner\
     |social|sponsor|supplemental|ad-break|agegate|pagination|pager|popup\
     |yom-remote";
 pub static LIKELY_CANDIDATES: &'static str = "and|article|body|column|main\
-    |shadow";
+    |shadow\
+    |a"; // #added0.1
 pub static POSITIVE_CANDIDATES: &'static str = "article|body|content|entry\
         |hentry|h-entry|main|page|pagination|post|text|blog|story";
 pub static NEGATIVE_CANDIDATES: &'static str = "article|body|content|entry\
