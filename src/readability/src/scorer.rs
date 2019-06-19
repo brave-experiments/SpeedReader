@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::path::Path;
 use std::cell::Cell;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use url::Url;
 use regex::Regex;
 use html5ever::tree_builder::TreeSink;
@@ -278,7 +278,8 @@ fn find_or_create_candidate<'a>(id: &Path,
     None
 }
 
-pub fn clean(mut dom: &mut RcDom, id: &Path, handle: Handle, url: &Url, candidates: &BTreeMap<String, Candidate>) -> bool {
+// decides whether the handle node is useless (should be dropped) or not.
+pub fn clean(mut dom: &mut RcDom, id: &Path, handle: Handle, url: &Url, title: &str, features: &HashMap<String, u32>, candidates: &BTreeMap<String, Candidate>) -> bool {
     let mut useless = false;
     match handle.data {
         Document       => (),
@@ -293,14 +294,23 @@ pub fn clean(mut dom: &mut RcDom, id: &Path, handle: Handle, url: &Url, candidat
         Element { ref name, ref attrs, .. } => {
             let tag_name = name.local.as_ref();
             match tag_name.to_lowercase().as_ref() {
-                "script" | "link" | "style" | "noscript" | "meta"
+                "script" | "link" | "style" | "noscript" | "meta" | "iframe"
                     | "h1" | "object" | "header" | "footer" | "aside" => {
-                    useless = true
+                        useless = true
                 },
                 "form" | "table" | "ul" | "div" => {
                     useless = is_useless(id, handle.clone(), candidates)
                 },
                 "img" => useless = !fix_img_path(handle.clone(), url),
+                "h2" => {
+                    // (from readability.js) if there is only one h2 and its
+                    // content substantiallt equals article title, they are
+                    // probably using it as a header and not as a subheader, so
+                    // remove it since we already extract the title separately.
+                    println!("===> {:?}", features);
+                    println!("{}", title);
+                    useless = false;
+                },
                 _     => (),
             }
             dom::clean_attr("id"   , &mut *attrs.borrow_mut());
@@ -312,7 +322,7 @@ pub fn clean(mut dom: &mut RcDom, id: &Path, handle: Handle, url: &Url, candidat
     let mut useless_nodes = vec![];
     for (i, child) in handle.children.borrow().iter().enumerate() {
         let pid = id.join(i.to_string());
-        if clean(&mut dom, pid.as_path(), child.clone(), url, candidates) {
+        if clean(&mut dom, pid.as_path(), child.clone(), url, title, features, candidates) {
             useless_nodes.push(child.clone());
         }
     }
