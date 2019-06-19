@@ -25,6 +25,6 @@ fn main() {
     println!(">> Readble?\n {}", classifier_result);
 
     // document mapper
-    let product = extract_dom(&mut extractor.dom, &url).unwrap();
+    let product = extract_dom(&mut extractor.dom, &url, &extractor.features).unwrap();
     println!(">> Read mode:\n {}", product.content);
 }

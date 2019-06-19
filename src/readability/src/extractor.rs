@@ -2,9 +2,10 @@ use std::io::Read;
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::cell::Cell;
+use std::collections::HashMap;
 use html5ever::rcdom::{RcDom};
 use html5ever::{parse_document, serialize};
-use html5ever::tendril::stream::TendrilSink;
+use html5ever::tendril::TendrilSink;
 use std::default::Default;
 use url::Url;
 use error::Error;
@@ -20,15 +21,15 @@ pub struct Product {
 }
 
 pub fn extract<R>(input: &mut R, url: &Url) -> Result<Product, Error> where R: Read {
-    let mut dom = parse_document(RcDom::default(), Default::default())
-        .from_utf8()
-        .read_from(input)
-        .unwrap();
+        let mut dom = parse_document(RcDom::default(), Default::default())
+                    .from_utf8()
+                            .read_from(input)
+                                    .unwrap();
 
-    extract_dom(&mut dom, url)
+            extract_dom(&mut dom, url, &HashMap::new())
 }
 
-pub fn extract_dom(mut dom: &mut RcDom, url: &Url) -> Result<Product, Error> {
+pub fn extract_dom(mut dom: &mut RcDom, url: &Url, features: &HashMap<String, u32>) -> Result<Product, Error> {
     let mut title      = String::new();
     let mut candidates = BTreeMap::new();
     let mut nodes      = BTreeMap::new();
@@ -55,7 +56,7 @@ pub fn extract_dom(mut dom: &mut RcDom, url: &Url) -> Result<Product, Error> {
     let mut bytes = vec![];
 
     let node = top_candidate.node.clone();
-    scorer::clean(&mut dom, Path::new(id), node.clone(), url, &candidates);
+    scorer::clean(&mut dom, Path::new(id), node.clone(), url, &title, features, &candidates);
 
     serialize(&mut bytes, &node, Default::default()).ok();
     let content = String::from_utf8(bytes).unwrap_or_default();
