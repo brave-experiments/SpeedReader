@@ -295,22 +295,13 @@ pub fn clean(mut dom: &mut RcDom, id: &Path, handle: Handle, url: &Url, title: &
             let tag_name = name.local.as_ref();
             match tag_name.to_lowercase().as_ref() {
                 "script" | "link" | "style" | "noscript" | "meta" | "iframe"
-                    | "h1" | "object" | "header" | "footer" | "aside" => {
+                 | "object" | "header" | "footer" | "aside" => {
                         useless = true
                 },
                 "form" | "table" | "ul" | "div" => {
                     useless = is_useless(id, handle.clone(), candidates)
                 },
                 "img" => useless = !fix_img_path(handle.clone(), url),
-                "h2" => {
-                    // (from readability.js) if there is only one h2 and its
-                    // content substantiallt equals article title, they are
-                    // probably using it as a header and not as a subheader, so
-                    // remove it since we already extract the title separately.
-                    println!("===> {:?}", features);
-                    println!("{}", title);
-                    useless = false;
-                },
                 _     => (),
             }
             dom::clean_attr("id"   , &mut *attrs.borrow_mut());

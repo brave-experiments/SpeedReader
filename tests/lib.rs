@@ -250,7 +250,7 @@ mod test {
 
 // passing 
 
-// test!(ars_1);
+test!(ars_1);
 // test!(cnet);
 // test!(folha);
 // test!(liberation_1);
