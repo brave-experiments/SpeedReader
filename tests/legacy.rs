@@ -7,6 +7,9 @@ extern crate distance;
 extern crate regex;
 
 #[macro_use]
+extern crate markup5ever;
+
+#[macro_use]
 extern crate lazy_static;
 
 
@@ -14,6 +17,7 @@ use readability::extractor;
 use speedreader::classifier::feature_extractor::FeatureExtractor;
 use std::fs::File;
 use std::io::Read;
+use std::collections::HashSet;
 use url::Url;
 
 use std::rc::Rc;
@@ -32,7 +36,7 @@ fn load_test_files(test_name: &str) -> String {
     expected
 }
 
-pub fn extract_flattened_tree(handle: Handle, tags_attrs: &Vec<(&str, &str)>, 
+pub fn extract_flattened_tree(handle: Handle, tags_extracted: &HashSet<String>, 
                                flattened_nodes: &mut Vec<Rc<Node>>) -> Vec<Rc<Node>> {
     for child in handle.children.borrow().iter() {
         let c = child.clone();
@@ -41,21 +45,15 @@ pub fn extract_flattened_tree(handle: Handle, tags_attrs: &Vec<(&str, &str)>,
                 flattened_nodes.push(c.clone());
             },
             Element { ref name, ref attrs, .. } => {
-                let t = name.local.as_ref();
-                for a in attrs.borrow().iter() {
-                    let t = t.to_lowercase();
-                    let a = a.value.to_string().to_lowercase();
+                let tag = name.local.as_ref();
+                let tag_name = tag.to_lowercase();
 
-                    // check if current node name and attr match expected
-                    for (tag_name, attr_name) in tags_attrs.iter() {
-                        // let (tag_name, attr_name): (&str, &str) = ta;
-                        if &t == *tag_name && &a == *attr_name {
-                            flattened_nodes.push(c.clone());
-                        }
-                    }
+                if tags_extracted.contains(&tag_name) {
+                    flattened_nodes.push(c.clone());
                 }
+
                 // if type Element, traverse to children in next iteration
-                extract_flattened_tree(child.clone(), tags_attrs, flattened_nodes);
+                extract_flattened_tree(child.clone(), tags_extracted, flattened_nodes);
             },
             _ => (),
         }
@@ -64,14 +62,41 @@ pub fn extract_flattened_tree(handle: Handle, tags_attrs: &Vec<(&str, &str)>,
 }
 
 pub fn extract_text(handle: &Handle) -> String {
-    match handle.data {
+    let node_text = match handle.data {
         Text { ref contents } => {
-            contents.borrow().trim().to_string()
+            Some(contents.borrow().trim().to_string())
         },
-        _ => {
-            handle.children.borrow().iter().map(|c| extract_text(c)).collect::<Vec<_>>().join(" ")
+        Element { ref name, ref attrs, .. } if name.local == local_name!("img") => {
+            let attrs_borrow = attrs.borrow();
+            let attr = attrs_borrow.iter().find(|attr| attr.name.local == local_name!("src"));
+            let attr_value: Option<String> = attr.map(|a| a.value.to_string());
+            Some(format!("<img src='{:?}'/>", attr_value))  
         }
+        Element { ref name, ref attrs, .. } if name.local == local_name!("a") => {
+            let attrs_borrow = attrs.borrow();
+            let attr = attrs_borrow.iter().find(|attr| attr.name.local == local_name!("href"));
+            let attr_value: Option<String> = attr.map(|a| a.value.to_string());
+            Some(format!("<a href='{:?}'/>", attr_value))  
+        }
+        _ => {
+            None
+        }
+    };
+
+    let mut contents: Vec<_>;
+    if node_text.is_some() {
+        contents = vec![node_text.unwrap()];
+    } else {
+        contents = vec![];
     }
+
+    contents.append(&mut handle.children.borrow()
+        .iter()
+        .map(|c| extract_text(c))
+        .collect::<Vec<_>>()
+    );
+    
+    contents.join(" ")
 }
 
 fn lcs(left: &Vec<String>, right: &Vec<String>) -> (usize, Vec<String>){
@@ -119,11 +144,11 @@ fn lcs(left: &Vec<String>, right: &Vec<String>) -> (usize, Vec<String>){
 fn get_flat_dom_nodes(document: &FeatureExtractor) -> Vec<String> {
     let mut expected_nodes = Vec::new();
     // checks full flattened tree for a subset of (tags, attrs)
-    let mut tags_attrs: Vec<(&str, &str)> = Vec::new();
-    tags_attrs.push(("a", "href"));
-    tags_attrs.push(("img", "src"));
+    let mut tags = HashSet::new();
+    tags.insert("a".to_owned());
+    tags.insert("img".to_owned());
     
-    extract_flattened_tree(document.dom.document.clone(), &tags_attrs, &mut expected_nodes);
+    extract_flattened_tree(document.dom.document.clone(), &tags, &mut expected_nodes);
 
     lazy_static! {
         static ref WHITESPACE: Regex = Regex::new(r"(\s\s+)").unwrap();
