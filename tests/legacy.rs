@@ -19,9 +19,7 @@ use url::Url;
 use std::rc::Rc;
 use std::vec::Vec;
 use html5ever::rcdom::{Node, Handle};
-use html5ever::rcdom::NodeData;
 use html5ever::rcdom::NodeData::{Element, Text};
-use distance::damerau_levenshtein;
 use regex::Regex;
 
 static SAMPLES_PATH: &'static str = "./tests/samples/";

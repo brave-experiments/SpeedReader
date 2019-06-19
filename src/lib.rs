@@ -21,7 +21,7 @@ pub fn process<R>(mut input: &mut R, url: &str) -> String where R: Read {
     if class == 0 {
         "".to_owned() // TODO: return the original content
     } else {
-        let extracted = readability::extractor::extract_dom(&mut featurised.dom, &featurised.url).unwrap();
+        let extracted = readability::extractor::extract_dom(&mut featurised.dom, &featurised.url, &featurised.features).unwrap();
         extracted.content
     }
 }
