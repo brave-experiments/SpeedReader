@@ -18,6 +18,7 @@ regex = "1"
 url = "1.7"
 readability = { path = "src/readability" }
 lazy_static = "1.3"
+termion = "1.5"
 
 [build-dependencies]
 regex = "1"
