@@ -44,7 +44,7 @@ pub fn extract_flattened_tree(handle: Handle, tags_extracted: &HashSet<String>,
             Text { .. } => {
                 flattened_nodes.push(c.clone());
             },
-            Element { ref name, ref attrs, .. } => {
+            Element { ref name, .. } => {
                 let tag = name.local.as_ref();
                 let tag_name = tag.to_lowercase();
 
@@ -145,8 +145,9 @@ fn get_flat_dom_nodes(document: &FeatureExtractor) -> Vec<String> {
     let mut expected_nodes = Vec::new();
     // checks full flattened tree for a subset of (tags, attrs)
     let mut tags = HashSet::new();
-    tags.insert("a".to_owned());
-    tags.insert("img".to_owned());
+    // #TODO: check a tags and imgs too, but for now focus on text
+    //tags.insert("a".to_owned());
+    //tags.insert("img".to_owned());
     
     extract_flattened_tree(document.dom.document.clone(), &tags, &mut expected_nodes);
 
@@ -244,45 +245,70 @@ macro_rules! test_str {
     }
 }
 
-// test_str!(ars_1);
-// test_str!(cnet);
-// test_str!(folha);
-// test_str!(liberation_1);
-// test_str!(metadata_content_missing);
-// test_str!(msn);
-// test_str!(rtl_1);
-// test_str!(rtl_2);
-// test_str!(rtl_3);
-// test_str!(rtl_4);
-// test_str!(tumblr);
-// test_str!(yahoo_4);
-// test_str!(videos_2);
-// test_str!(pixnet);
-// test_str!(aclu);
-// test_str!(base_url);
-// test_str!(base_url_base_element);
-// test_str!(base_url_base_element_relative);
-// test_str!(basic_tags_cleaning);
-// test_str!(guardian_1);
-// test_str!(heise);
-// test_str!(embedded_videos);
-// test_str!(lemonde_1);
-// test_str!(lifehacker_post_comment_load);
-// test_str!(lifehacker_working);
-// test_str!(youth);
-// test_str!(social_buttons);
-// test_str!(style_tags_removal);
-// test_str!(normalize_spaces);
-// test_str!(nytimes_1);
-// test_str!(missing_paragraphs);
-// test_str!(replace_font_tags);
-// test_str!(reordering_paragraphs);
-// test_str!(videos_1);
-// test_str!(breitbart);
+// - salon_1 has whole front of an article missing
+test_str!(salon_1);
 
-  test_str!(bbc_1);
+// - wapo_2 doesn’t include key article images
+//test_str!(wapo_2);
 
- //test_str!(wordpress);
+// - telegraph misses half an article
+//test_str!(telegraph);
+
+// - medium_3 misses multiple apragraphs at front _and_ end
+//test_str!(medium_3);
+
+// - nytimes_2 misses entire front including image and paragraphs
+//test_str!(nytimes_2);
+
+// - nytimes_4, nytimes_3 misses most of the article
+//test_str!(nytimes_4);
+
+// - mozilla_1 misses most of article
+//test_str!(mozilla_1);
+
+// - ehow_2 misses most of article
+//test_str!(ehow_2);
+
+
+ // test_str!(ars_1);
+ // test_str!(cnet);
+ // test_str!(folha);
+ // test_str!(liberation_1);
+ // test_str!(metadata_content_missing);
+ // test_str!(msn);
+ // test_str!(rtl_1);
+ // test_str!(rtl_2);
+ // test_str!(rtl_3);
+ // test_str!(rtl_4);
+ // test_str!(tumblr);
+ // test_str!(yahoo_4);
+ // test_str!(videos_2);
+ // test_str!(pixnet);
+ // test_str!(aclu);
+ // test_str!(base_url);
+ // test_str!(base_url_base_element);
+ // test_str!(base_url_base_element_relative);
+ // test_str!(basic_tags_cleaning);
+ // test_str!(guardian_1);
+ // test_str!(heise);
+ // test_str!(embedded_videos);
+ // test_str!(lemonde_1);
+ // test_str!(lifehacker_post_comment_load);
+ // test_str!(lifehacker_working);
+ // test_str!(youth);
+ // test_str!(social_buttons);
+ // test_str!(style_tags_removal);
+ // test_str!(normalize_spaces);
+ // test_str!(nytimes_1);
+ // test_str!(missing_paragraphs);
+ // test_str!(replace_font_tags);
+ // test_str!(reordering_paragraphs);
+ // test_str!(videos_1);
+ // test_str!(breitbart);
+
+ // test_str!(bbc_1);
+
+ // test_str!(wordpress);
  // test_str!(bug_1255978);
  // test_str!(buzzfeed_1);
  // test_str!(citylab_1);
@@ -292,7 +318,6 @@ macro_rules! test_str {
  // test_str!(comment_inside_script_parsing);
  // test_str!(daringfireball_1);
  // test_str!(ehow_1);
- // test_str!(ehow_2);
  // test_str!(engadget);
  // test_str!(gmw);
  // test_str!(herald_sun_1);
@@ -307,27 +332,20 @@ macro_rules! test_str {
  // test_str!(lwn_1);
  // test_str!(medicalnewstoday);
  // test_str!(medium_1);
- // test_str!(medium_3);
  // test_str!(mercurial);
- // test_str!(mozilla_1);
  // test_str!(mozilla_2);
- // test_str!(nytimes_2);
- // test_str!(nytimes_3);
- // test_str!(nytimes_4);
+ // test_str!(nytimes_3); 
  // test_str!(qq);
  // test_str!(remove_extra_brs);
  // test_str!(remove_extra_paragraphs);
  // test_str!(remove_script_tags);
  // test_str!(replace_brs);
- // test_str!(salon_1);
  // test_str!(seattletimes_1);
  // test_str!(simplyfound_3);
  // test_str!(svg_parsing);
  // test_str!(table_style_attributes);
- // test_str!(telegraph);
  // test_str!(tmz_1);
  // test_str!(wapo_1);
- // test_str!(wapo_2);
  // test_str!(webmd_1);
  // test_str!(webmd_2);
  // test_str!(wikipedia);

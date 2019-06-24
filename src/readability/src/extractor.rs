@@ -38,14 +38,27 @@ pub fn extract_dom(mut dom: &mut RcDom, url: &Url, features: &HashMap<String, u3
     // extracts title (if it exists) pre-processes the DOM by removing script
     // tags, css, links
     scorer::preprocess(&mut dom, handle.clone(), &mut title);   
+
+    // now that the dom has been preprocessed, get the set of potential dom 
+    // candidates and their scoring. a candidate contains the node parent of the
+    // dom tree branch and its score. in practice, this function will go through
+    // the dom and populate `candidates` data structure
     scorer::find_candidates(&mut dom, Path::new("/"), handle.clone(), &mut candidates, &mut nodes);
     let mut id: &str = "/";
+
+    // top candidate is the top scorer among the tree dom's candidates. this is 
+    // the subtree that will be considered for final rendering
     let mut top_candidate: &Candidate = &Candidate {
         node:  handle.clone(),
         score: Cell::new(0.0),
     };
+
+    // scores all candidate nodes
     for (i, c) in candidates.iter() {
         let score = c.score.get() * (1.0 - scorer::get_link_density(c.node.clone()));
+
+        //println!("{:?} {:?} {:?}",score, c.score.get(), 1.0 - scorer::get_link_density(c.node.clone()));
+
         c.score.set(score);
         if score <= top_candidate.score.get() {
             continue;
@@ -53,9 +66,12 @@ pub fn extract_dom(mut dom: &mut RcDom, url: &Url, features: &HashMap<String, u3
         id            = i;
         top_candidate = c;
     }
+
     let mut bytes = vec![];
 
+    // clean top candidate (only one?)
     let node = top_candidate.node.clone();
+
     scorer::clean(&mut dom, Path::new(id), node.clone(), url, &title, features, &candidates);
 
     serialize(&mut bytes, &node, Default::default()).ok();
