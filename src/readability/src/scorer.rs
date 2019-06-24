@@ -78,6 +78,9 @@ pub fn get_link_density(handle: Handle) -> f32 {
     link_length / text_length
 }
 
+// is candidate iif lenght of the text is larger than 20 words AND its tag is
+// is `div`, `article`, `center`, `section` while not in containing nodes in
+// BLOCK_CHILD_TAGS
 pub fn is_candidate(handle: Handle) -> bool {
     let text_len = dom::text_len(handle.clone());
     if text_len < 20 {
@@ -210,48 +213,49 @@ pub fn find_candidates(mut dom:    &mut RcDom,
                        candidates: &mut BTreeMap<String, Candidate>,
                        nodes:      &mut BTreeMap<String, Rc<Node>>) {
 
+    // Id of a particular node maps to its position in the dom tree, represented 
+    // as std::path::Path data structure
     if let Some(id) = id.to_str().map(|id| id.to_string()) {
         nodes.insert(id, handle.clone());
     }
 
+    // is candidate iif lenght of the text in handle is larger than 20 words AND 
+    // its tag is `div`, `article`, `center`, `section` while not in containing 
+    // nodes in BLOCK_CHILD_TAGS
+
     if is_candidate(handle.clone()) {
+        // calculates the content score of the current candidate
         let score = calc_content_score(handle.clone());
+
         if let Some(c) = id.parent()
-            .and_then(|pid| find_or_create_candidate(pid, candidates, nodes))
-        {
-            c.score.set(c.score.get() + score)
+            .and_then(|pid| find_or_create_candidate(pid, candidates, nodes)) {
+                c.score.set(c.score.get() + score)
         }
         if let Some(c) = id.parent()
             .and_then(|pid| pid.parent())
-            .and_then(|gpid| find_or_create_candidate(gpid, candidates, nodes))
-        {
-            c.score.set(c.score.get() + score / 2.0)
+            .and_then(|gpid| find_or_create_candidate(gpid, candidates, nodes)) {
+                c.score.set(c.score.get() + score)
         }
-    }
 
+        // adds candidate's score to ALL of its parents in the tree, rescursively
+        // the scoring impact of child nodes in ALL upper nodes decays as the 
+        // tree is traverse backwards:
+        //  parent: no decay
+        //  grandparent: scoring divided by 2
+        //  great grandparent and upwards: decay of level * 3
 
-    if is_candidate(handle.clone()) {
-        let score = calc_content_score(handle.clone());
-        if let Some(c) = id.to_str()
-            .map(|id| id.to_string())
-            .and_then(|id| candidates.get(&id)) {
-                c.score.set(c.score.get() + score)
-            }
-        if let Some(c) = id.parent()
-            .and_then(|pid| pid.to_str())
-            .map(|id| id.to_string())
-            .and_then(|pid| candidates.get(&pid)) {
-                c.score.set(c.score.get() + score)
-            }
-        if let Some(c) = id.parent()
-            .and_then(|p| p.parent())
-            .and_then(|pid| pid.to_str())
-            .map(|id| id.to_string())
-            .and_then(|pid| candidates.get(&pid)) {
-                c.score.set(c.score.get() + score)
+        let mut level = 1;
+        for p in id.ancestors() {
+            p.file_name(). // "file_name" === pid
+                and_then(|c| c.to_str())
+                .map(|c| candidates.get(c))
+                .and_then(|x| x)
+                .map(|x| x.score.set(x.score.get() + (score / (level * 3) as f32)));
+             level += 1;
             }
     }
 
+    // for all the current child's node, execute recursively find_candidates()
     for (i, child) in handle.children.borrow().iter().enumerate() {
         find_candidates(&mut dom,
                         id.join(i.to_string()).as_path(),
