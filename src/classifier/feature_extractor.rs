@@ -200,7 +200,7 @@ impl TreeSink for FeaturisingDom {
 
                 if parent_name == "p" {
                     let parent_level = node_depth(parent, 11, 1);
-                    let num_words = text.split_ascii_whitespace().count();
+                    let num_words = text.split_whitespace().count();
 
                     // words
                     self.features
