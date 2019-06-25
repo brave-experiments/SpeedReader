@@ -4,7 +4,7 @@ use std::default::Default;
 use std::string::String;
 use std::vec::Vec;
 
-use html5ever::parse_document;
+use html5ever;
 use html5ever::rcdom::Handle;
 use html5ever::rcdom::NodeData;
 use html5ever::rcdom::RcDom;
@@ -17,11 +17,18 @@ use url::Url;
 #[derive(Debug, PartialEq)]
 pub enum FeatureExtractorError {
     InvalidUrl(String),
+    DocumentParseError(String),
 }
 
 impl From<url::ParseError> for FeatureExtractorError {
     fn from(err: url::ParseError) -> Self {
         FeatureExtractorError::InvalidUrl(err.to_string())
+    }
+}
+
+impl From<std::io::Error> for FeatureExtractorError {
+    fn from(err: std::io::Error) -> Self {
+        FeatureExtractorError::DocumentParseError(err.to_string())
     }
 }
 
@@ -33,13 +40,15 @@ pub struct FeatureExtractor {
 }
 
 impl FeatureExtractor {
-    pub fn parse_document<R>(doc: &mut R, url: &str) -> FeatureExtractor
+    pub fn parse_document<R>(doc: &mut R, url: &str) -> Result<FeatureExtractor, FeatureExtractorError>
     where
         R: Read,
     {
-        let url_parsed = Url::parse(url).unwrap();
+        let url_parsed = Url::parse(url)?;
 
-        let dom_features = process_and_extract(doc);
+        let dom_features = html5ever::parse_document(FeaturisingDom::default(), Default::default())
+            .from_utf8()
+            .read_from(doc)?;
 
         let mut features = dom_features.features;
         features.insert(
@@ -47,56 +56,12 @@ impl FeatureExtractor {
             url_depth(&url_parsed).unwrap() as u32,
         );
 
-        FeatureExtractor {
+        Ok(FeatureExtractor {
             url: url_parsed,
             dom: dom_features.rcdom,
             features,
-        }
+        })
     }
-}
-
-fn process_and_extract<R>(mut doc: &mut R) -> FeaturisingDom
-where
-    R: Read,
-{
-    // let f_tags: Vec<&str> = vec![
-    //     "p",
-    //     "ul",
-    //     "ol",
-    //     "dl",
-    //     "div",
-    //     "pre",
-    //     "table",
-    //     "select",
-    //     "article",
-    //     "section",
-    //     "blockquote",
-    //     "a",
-    //     "img",
-    //     "script",
-    // ];
-
-    // let mut f_checks: Vec<&str> = vec![
-    //     "text_blocks",
-    //     "url_depth",
-    //     "amphtml",
-    //     "fb_pages",
-    //     "og_article",
-    //     "words",
-    //     "schema_org",
-    // ];
-
-    let sink = FeaturisingDom {
-        features: HashMap::new(),
-        rcdom: RcDom::default(),
-    };
-
-    let parser = parse_document(sink, Default::default());
-
-    // redefining sink from parser
-    let sink = parser.from_utf8().read_from(&mut doc).unwrap();
-
-    sink
 }
 
 fn url_depth(url: &Url) -> Result<usize, FeatureExtractorError> {
@@ -109,6 +74,15 @@ fn url_depth(url: &Url) -> Result<usize, FeatureExtractorError> {
 struct FeaturisingDom {
     features: HashMap<String, u32>,
     pub rcdom: RcDom,
+}
+
+impl Default for FeaturisingDom {
+    fn default() -> FeaturisingDom {
+        FeaturisingDom {
+            features: HashMap::new(),
+            rcdom: RcDom::default(),
+        }
+    }
 }
 
 impl TreeSink for FeaturisingDom {
