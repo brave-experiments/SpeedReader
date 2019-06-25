@@ -343,9 +343,13 @@ pub fn clean(mut dom: &mut RcDom, id: &Path, handle: Handle, url: &Url, title: &
                 "form" | "table" | "ul" | "div" => {
                     useless = is_useless(id, handle.clone(), candidates)
                 },
-                "img" => useless = !fix_img_path(handle.clone(), url),
+                "img" => {
+                    useless = !fix_img_path(handle.clone(), url);
+                },
                 _     => (),
             }
+
+            // cleans all ids, classes and styles in node
             dom::clean_attr("id"   , &mut *attrs.borrow_mut());
             dom::clean_attr("class", &mut *attrs.borrow_mut());
             dom::clean_attr("style", &mut *attrs.borrow_mut());
@@ -397,9 +401,9 @@ pub fn is_useless(id: &Path, handle: Handle, candidates: &BTreeMap<String, Candi
     let content_length = dom::text_len(handle.clone());
     let para_count = text_nodes_len + p_count;
 
-    if img_count > para_count + text_nodes_len {
-        return true
-    }
+    //if img_count > para_count + text_nodes_len {
+    //    return true
+    //}
     if li_count > para_count as i32 && tag_name != "ul" && tag_name != "ol" {
         return true
     }
