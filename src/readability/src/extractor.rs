@@ -56,9 +56,6 @@ pub fn extract_dom(mut dom: &mut RcDom, url: &Url, features: &HashMap<String, u3
     // scores all candidate nodes
     for (i, c) in candidates.iter() {
         let score = c.score.get() * (1.0 - scorer::get_link_density(c.node.clone()));
-
-        //println!("{:?} {:?} {:?}",score, c.score.get(), 1.0 - scorer::get_link_density(c.node.clone()));
-
         c.score.set(score);
         if score <= top_candidate.score.get() {
             continue;
@@ -69,9 +66,7 @@ pub fn extract_dom(mut dom: &mut RcDom, url: &Url, features: &HashMap<String, u3
 
     let mut bytes = vec![];
 
-    // clean top candidate (only one?)
     let node = top_candidate.node.clone();
-
     scorer::clean(&mut dom, Path::new(id), node.clone(), url, &title, features, &candidates);
 
     serialize(&mut bytes, &node, Default::default()).ok();

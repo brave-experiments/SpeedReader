@@ -19,7 +19,7 @@ use html5ever::{QualName, LocalName};
 use html5ever::tree_builder::{NodeOrText, ElementFlags};
 use dom;
 
-pub static PUNCTUATIONS_REGEX: &'static str = r"([、。，．！？]|\.[^A-Za-z0-9]|,[^0-9]|!|\?)";
+pub static PUNCTUATIONS_REGEX: &'static str = r"([,]\?)";
 pub static UNLIKELY_CANDIDATES: &'static str = "-ad-|ai2html|banner\
     |breadcrumbs|combx|comment|community|cover-wrap|disqus|extra|foot|gdpr\
     |header|legends|menu|related|remark|replies|rss|shoutbox|sidebar|skyscraper\
@@ -27,15 +27,21 @@ pub static UNLIKELY_CANDIDATES: &'static str = "-ad-|ai2html|banner\
     |yom-remote";
 pub static LIKELY_CANDIDATES: &'static str = "and|article|body|column|main\
     |shadow\
-    |a"; // #added0.1
+    |a";
 pub static POSITIVE_CANDIDATES: &'static str = "article|body|content|entry\
         |hentry|h-entry|main|page|pagination|post|text|blog|story";
-pub static NEGATIVE_CANDIDATES: &'static str = "article|body|content|entry\
-        |hentry|h-entry|main|page|pagination|post|text|blog|story";
+pub static NEGATIVE_CANDIDATES: &'static str = "hidden|^hid$|hid$|hid|^hid\
+        |banner|combx|comment|com-|contact|foot|footer|footnote|gdpr|header\
+        |legends|menu|related|remark|replies|rss|shoutbox|sidebar|skyscraper\
+        |social|sponsor|supplemental|ad-break|agegate|pagination|pager|popup\
+        yom-remote";
 static BLOCK_CHILD_TAGS: [&'static str; 11] = [
     "a", "blockquote", "dl", "div", "img", "ol", "p", "pre", "table", "ul",
     "select",
 ];
+
+static DECAY_FACTOR: f32 = 3.0;
+
 lazy_static! {
     static ref PUNCTUATIONS: Regex = Regex::new(PUNCTUATIONS_REGEX).unwrap();
     static ref LIKELY:       Regex = Regex::new(LIKELY_CANDIDATES).unwrap();
@@ -101,8 +107,17 @@ pub fn init_content_score(handle: Handle) -> f32 {
         "article"    => 10.0,
         "div"        => 5.0,
         "blockquote" => 3.0,
-        "form"       => -3.0,
+        "pre"        => 3.0,
+        "td"         => 3.0,
         "th"         => 5.0,
+        "address"    => -3.0,
+        "ol"         => -3.0,
+        "ul"         => -3.0,
+        "dl"         => -3.0,
+        "dd"         => -3.0,
+        "dt"         => -3.0,
+        "li"         => -3.0,
+        "form"       => -3.0,
         _            => 0.0,
     };
     score + get_class_weight(handle.clone())
@@ -124,6 +139,9 @@ pub fn get_class_weight(handle: Handle) -> f32 {
         Element { name: _, ref attrs, .. } => {
             for name in ["id", "class"].iter() {
                 if let Some(val) = dom::attr(name, &attrs.borrow()) {
+                    if val == "" {
+                        weight -= 25.0
+                    } 
                     if POSITIVE.is_match(&val) {
                         weight += 25.0
                     };
@@ -227,31 +245,41 @@ pub fn find_candidates(mut dom:    &mut RcDom,
         // calculates the content score of the current candidate
         let score = calc_content_score(handle.clone());
 
-        if let Some(c) = id.parent()
-            .and_then(|pid| find_or_create_candidate(pid, candidates, nodes)) {
-                c.score.set(c.score.get() + score)
-        }
-        if let Some(c) = id.parent()
-            .and_then(|pid| pid.parent())
-            .and_then(|gpid| find_or_create_candidate(gpid, candidates, nodes)) {
-                c.score.set(c.score.get() + score)
-        }
-
         // adds candidate's score to ALL of its parents in the tree, rescursively
         // the scoring impact of child nodes in ALL upper nodes decays as the 
         // tree is traverse backwards:
-        //  parent: no decay
-        //  grandparent: scoring divided by 2
-        //  great grandparent and upwards: decay of level * 3
+        //   parent: no decay
+        //   grandparent: scoring divided by 2
+        //   subsequent parent nodes: level * DECAY_FACTOR (3)
 
-        let mut level = 1;
-        for p in id.ancestors() {
-            p.file_name(). // "file_name" === pid
-                and_then(|c| c.to_str())
-                .map(|c| candidates.get(c))
-                .and_then(|x| x)
-                .map(|x| x.score.set(x.score.get() + (score / (level * 3) as f32)));
-             level += 1;
+        // parent
+        if let Some(c) = id.parent()
+            .and_then(|pid| find_or_create_candidate(pid, candidates, nodes)) 
+            {
+                c.score.set(c.score.get() + score)
+            }
+
+        // grandparent
+        if let Some(c) = id.parent()
+            .and_then(|pid| pid.parent())
+            .and_then(|gpid| find_or_create_candidate(gpid, candidates, nodes)) 
+            {
+                c.score.set(c.score.get() + (score / 2.0))
+            }
+
+        // subsequent nodes scored based on the level in the DOM
+        if let Some(distant_ancs) = id.parent()
+            .and_then(|pid| pid.parent())
+            .and_then(|gpid| gpid.parent()) {
+                let paths = get_all_ancestor_paths(distant_ancs);
+                let mut level = 2.0;
+                for p in paths {
+                    let add_score = score / (level * DECAY_FACTOR);
+                    let c = find_or_create_candidate(p, candidates, nodes).unwrap();
+                    c.score.set(c.score.get() + add_score);
+                    //println!("{}, {:?}:: {}", level, p, c.score.get() );
+                    level += 1.0;
+                }
             }
     }
 
@@ -264,6 +292,16 @@ pub fn find_candidates(mut dom:    &mut RcDom,
                         nodes)
     }
 }
+
+fn get_all_ancestor_paths(ps: &Path) -> Vec<&Path> {
+    let mut paths = Vec::new();
+    for p in ps.ancestors() {
+        paths.push(p);
+    }
+    paths.pop(); // removes last element "/"
+    paths
+}
+
 
 fn find_or_create_candidate<'a>(id: &Path,
                                 candidates: &'a mut BTreeMap<String, Candidate>,
