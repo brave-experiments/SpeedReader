@@ -34,18 +34,15 @@ impl From<std::io::Error> for FeatureExtractorError {
 
 //#[derive(PartialEq)]
 pub struct FeatureExtractor {
-    pub url: Url,
     pub dom: RcDom,
     pub features: HashMap<String, u32>,
 }
 
 impl FeatureExtractor {
-    pub fn parse_document<R>(doc: &mut R, url: &str) -> Result<FeatureExtractor, FeatureExtractorError>
+    pub fn parse_document<R>(doc: &mut R, url: &Url) -> Result<FeatureExtractor, FeatureExtractorError>
     where
         R: Read,
     {
-        let url_parsed = Url::parse(url)?;
-
         let dom_features = html5ever::parse_document(FeaturisingDom::default(), Default::default())
             .from_utf8()
             .read_from(doc)?;
@@ -53,11 +50,10 @@ impl FeatureExtractor {
         let mut features = dom_features.features;
         features.insert(
             "url_depth".to_string(),
-            url_depth(&url_parsed).unwrap() as u32,
+            url_depth(url).unwrap() as u32,
         );
 
         Ok(FeatureExtractor {
-            url: url_parsed,
             dom: dom_features.rcdom,
             features,
         })
