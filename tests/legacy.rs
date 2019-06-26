@@ -215,7 +215,7 @@ fn test_contents(name: &str) {
     // (for comparing with the result)
     let expected_string = load_test_files(name);
     let expected = FeatureExtractor::parse_document(
-        &mut expected_string.as_bytes(), &url.to_string()
+        &mut expected_string.as_bytes(), &url
     ).unwrap();
 
     let expected_nodes_str = get_flat_dom_nodes(&expected);
@@ -224,7 +224,7 @@ fn test_contents(name: &str) {
     // document
     let product = extractor::extract(&mut source_f, &url).unwrap();
     let result = FeatureExtractor::parse_document(
-        &mut product.content.as_bytes(), &url.to_string()
+        &mut product.content.as_bytes(), &url
     ).unwrap();
 
     let got_nodes_str = get_flat_dom_nodes(&result);
