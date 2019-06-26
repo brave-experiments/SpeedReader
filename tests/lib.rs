@@ -194,14 +194,14 @@ mod test {
                  // (for comparing with the result)
                  let expected_string = load_test_files(stringify!($name));
                  let expected = FeatureExtractor::parse_document(
-                    &mut expected_string.as_bytes(), &url.to_string()
+                    &mut expected_string.as_bytes(), &url
                  ).unwrap();
 
                  // uses the mapper build the mapper based on the source HTML
                  // document
                  let product = extract(&mut source_f, &url).unwrap();
                  let result = FeatureExtractor::parse_document(
-                   &mut product.content.as_bytes(), &url.to_string()
+                   &mut product.content.as_bytes(), &url
                  ).unwrap();
 
                  // checks full flattened tree for a subset of (tags, attrs)

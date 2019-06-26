@@ -3,11 +3,9 @@
 extern crate url;
 extern crate html5ever;
 
-pub mod classifier;
-
 #[cfg(test)]
 #[macro_use]
 extern crate matches;
 
-use readability;
-use std::io::Read;
+pub mod classifier;
+pub mod speedreader;

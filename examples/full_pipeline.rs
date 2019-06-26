@@ -12,7 +12,7 @@ fn main() {
     let data = fs::read_to_string("./examples/html/bbc_1.html").expect("err to string");
 
     // feature extraction
-    let mut extractor = FeatureExtractor::parse_document(&mut data.as_bytes(), &url.to_string()).unwrap();
+    let mut extractor = FeatureExtractor::parse_document(&mut data.as_bytes(), &url).unwrap();
 
     println!(">> Feature List");
     for (k, v) in extractor.features.to_owned().iter() {
