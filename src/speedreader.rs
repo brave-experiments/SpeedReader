@@ -45,7 +45,7 @@ fn url_maybe_readable(url: &Url) -> bool {
 
 const DOC_CAPACITY_INCREMENTS: usize = 65536;
 
-struct SpeedReader {
+pub struct SpeedReader {
     url: Option<Url>,
     original_buffer: RefCell<Vec<u8>>,
     readable: RefCell<Option<bool>>
