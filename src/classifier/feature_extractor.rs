@@ -5,6 +5,7 @@ use std::string::String;
 use std::vec::Vec;
 
 use html5ever;
+use html5ever::driver::ParseOpts;
 use html5ever::rcdom::Handle;
 use html5ever::rcdom::NodeData;
 use html5ever::rcdom::RcDom;
@@ -29,6 +30,43 @@ impl From<url::ParseError> for FeatureExtractorError {
 impl From<std::io::Error> for FeatureExtractorError {
     fn from(err: std::io::Error) -> Self {
         FeatureExtractorError::DocumentParseError(err.to_string())
+    }
+}
+
+//#[derive(PartialEq)]
+pub struct FeatureExtractorStreamer {
+    pub dom: FeaturisingDom,
+    pub features: HashMap<String, u32>,
+    pub qn: QualName,
+}
+
+impl FeatureExtractorStreamer {
+    pub fn new(qn: QualName, url: &Url) -> Result<FeatureExtractorStreamer, FeatureExtractorError> {
+        let mut features = HashMap::new();
+        features.insert(
+            "url_depth".to_string(),
+            url_depth(url).unwrap() as u32,
+        );
+
+        Ok(FeatureExtractorStreamer {
+            dom: FeaturisingDom::default(),
+            features,
+            qn,
+        })
+    }
+
+    pub fn parse_fragment<R>(&mut self, mut fragment: &mut R)
+    where
+        R: Read,
+    {
+
+        let s = html5ever::parse_fragment(
+            self.dom,
+            ParseOpts::default(),
+            self.qn.clone(),
+            vec![]);
+
+        self.dom = s.from_utf8().read_from(&mut fragment).expect("");
     }
 }
 
@@ -66,8 +104,8 @@ fn url_depth(url: &Url) -> Result<usize, FeatureExtractorError> {
         .ok_or_else(|| FeatureExtractorError::InvalidUrl(url.as_str().to_owned())) // return error
 }
 
-// #[derive(Debug)]
-struct FeaturisingDom {
+#[derive(Copy, Clone)]
+pub struct FeaturisingDom {
     features: HashMap<String, u32>,
     pub rcdom: RcDom,
 }
