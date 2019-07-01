@@ -4,6 +4,11 @@ use std::cell::RefCell;
 use url::Url;
 
 use crate::classifier;
+use classifier::feature_extractor::{FeatureExtractorStreamer};
+
+// refactor out
+use html5ever::QualName;
+use markup5ever::{Namespace, LocalName, Prefix};
 
 struct SpeedReaderDoc {
     pub readable: bool,
@@ -48,25 +53,33 @@ const DOC_CAPACITY_INCREMENTS: usize = 65536;
 pub struct SpeedReader {
     url: Option<Url>,
     original_buffer: RefCell<Vec<u8>>,
-    readable: RefCell<Option<bool>>
+    readable: RefCell<Option<bool>>,
+    streamer: FeatureExtractorStreamer,
 }
 
 impl SpeedReader {
     pub fn new(url: &str) -> SpeedReader {
         let url_parsed = Url::parse(url);
+        let qn = QualName::new(
+            Some(Prefix::from("html")),
+            Namespace::from("html"),
+            LocalName::from("html"),
+        );
 
         url_parsed.map(|url| {
             if url_maybe_readable(&url) {
                 SpeedReader {
                     url: Some(url),
                     original_buffer: RefCell::new(Vec::with_capacity(DOC_CAPACITY_INCREMENTS)),
-                    readable: RefCell::new(None)
+                    readable: RefCell::new(None),
+                    streamer: FeatureExtractorStreamer::new(qn.clone()).unwrap(),
                 }
             } else {
                 SpeedReader {
                     url: None,
                     original_buffer: RefCell::new(Vec::with_capacity(0)),
-                    readable: RefCell::new(Some(false))
+                    readable: RefCell::new(Some(false)),
+                    streamer: FeatureExtractorStreamer::new(qn.clone()).unwrap(),
                 }
             }
         })
@@ -74,16 +87,15 @@ impl SpeedReader {
             SpeedReader {
                 url: None,
                 original_buffer: RefCell::new(Vec::with_capacity(0)),
-                readable: RefCell::new(Some(false))
+                readable: RefCell::new(Some(false)),
+                streamer: FeatureExtractorStreamer::new(qn.clone()).unwrap(),
             }
         })
     }
 
-    pub fn with_chunk(&self, input: &[u8]) {
+    pub fn with_chunk(&mut self, mut input: &mut &[u8]) {
         if self.document_readable() != Some(false) {
-            let mut buffer = self.original_buffer.borrow_mut();
-            buffer.reserve(input.len());
-            buffer.extend(input);
+            self.streamer.parse_fragment(&mut input);
         }
         // else NOOP - already decided the doc is not readable
     }
@@ -110,3 +122,16 @@ impl SpeedReader {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_streamer() {
+        assert_eq!(1, 1);
+    }
+}
+
+
+
