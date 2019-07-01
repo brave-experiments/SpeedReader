@@ -1,16 +1,11 @@
 extern crate speedreader;
 
-use std::io::{self, Write};
-use std::str;
 use speedreader::classifier::feature_extractor::{FeatureExtractor, FeatureExtractorStreamer};
 use std::fs;
 use url::Url;
 
-use html5ever::{parse_document, parse_fragment, serialize, QualName};
-use html5ever::driver::ParseOpts;
-use html5ever::rcdom::RcDom;
+use html5ever::QualName;
 
-use html5ever::tendril::{TendrilSink, Tendril};
 use markup5ever::{Namespace, LocalName, Prefix};
 
 fn main() {
@@ -26,12 +21,13 @@ fn main() {
         LocalName::from("html"),
     );
 
-    let mut streamer = FeatureExtractorStreamer::new(qn, &url).unwrap();
+    let mut streamer = FeatureExtractorStreamer::new(qn).unwrap();
     
     streamer.parse_fragment(&mut frag1.as_bytes());
     streamer.parse_fragment(&mut frag2.as_bytes());
     streamer.parse_fragment(&mut frag3.as_bytes());
-    
+    streamer.set_url(&url.clone().unwrap());
+
     println!("======\n Features streamer:");
     let result = streamer.sink.features;
     for (k, v) in result.iter() {
@@ -40,12 +36,10 @@ fn main() {
 
     //feature extraction full
     let full = fs::read_to_string("./examples/html/simple.html").expect("err to string");
-    let extractor = FeatureExtractor::parse_document(&mut full.as_bytes(), &url).unwrap();
+    let extractor = FeatureExtractor::parse_document(&mut full.as_bytes(), &url.unwrap()).unwrap();
 
     println!("======\n Features full document:");
-    for (l, i) in result.iter() {
+    for (l, i) in extractor.features.iter() {
         println!("{}: {}", l,i);
     }
-
-
 }

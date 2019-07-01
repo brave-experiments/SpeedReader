@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::clone::Clone;
 use std::collections::HashMap;
 use std::default::Default;
 use std::string::String;
@@ -40,20 +41,14 @@ pub struct FeatureExtractorStreamer {
 }
 
 impl FeatureExtractorStreamer {
-    pub fn new(qn: QualName, url: Option<Url>) -> Result<FeatureExtractorStreamer, FeatureExtractorError> {
-        let mut sink = FeaturisingDom::default();
-        sink.features.insert(
-            "url_depth".to_string(),
-            url_depth(url).unwrap() as u32,
-        );
-
+    pub fn new(qn: QualName) -> Result<FeatureExtractorStreamer, FeatureExtractorError> {
         Ok(FeatureExtractorStreamer {
             sink: FeaturisingDom::default(),
             qn,
         })
     }
 
-    pub fn parse_fragment<R>(&mut self, mut fragment: &mut R)
+    pub fn parse_fragment<R>(&mut self, &mut fragment: mut R)
     where
         R: Read,
     {
@@ -65,6 +60,13 @@ impl FeatureExtractorStreamer {
             vec![]);
 
         self.sink = dom.from_utf8().read_from(&mut fragment).expect("");
+    }
+
+    pub fn set_url(&mut self, url: &Url) {
+        self.sink.features.insert(
+            "url_depth".to_string(),
+            url_depth(url).unwrap() as u32,
+        );
     }
 }
 
@@ -121,7 +123,7 @@ impl Clone for FeaturisingDom {
 
         FeaturisingDom {
             features: cloned_f,
-            rcdom: RcDom::default(),
+            rcdom: cloned_r,
         }
     }
 }
