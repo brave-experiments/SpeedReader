@@ -48,7 +48,7 @@ impl FeatureExtractorStreamer {
         })
     }
 
-    pub fn parse_fragment<R>(&mut self, &mut fragment: mut R)
+    pub fn parse_fragment<R>(&mut self, mut fragment: &mut R)
     where
         R: Read,
     {
