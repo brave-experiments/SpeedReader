@@ -68,11 +68,13 @@ impl SpeedReader {
 
         url_parsed.map(|url| {
             if url_maybe_readable(&url) {
+                let mut streamer = FeatureExtractorStreamer::new(qn.clone()).unwrap(); 
+                streamer.set_url(&url);
                 SpeedReader {
                     url: Some(url),
                     original_buffer: RefCell::new(Vec::with_capacity(DOC_CAPACITY_INCREMENTS)),
                     readable: RefCell::new(None),
-                    streamer: FeatureExtractorStreamer::new(qn.clone()).unwrap(),
+                    streamer,
                 }
             } else {
                 SpeedReader {
@@ -128,10 +130,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_streamer() {
-        assert_eq!(1, 1);
+    fn test_speedreader_streamer() {
+        let mut sreader = SpeedReader::new("https://test.xyz");
+
+        let mut buff1 = "<html><p>hello".as_bytes();
+        let mut buff2 = "world </p>\n\n\n\n<br><br><a href='/link'>".as_bytes();
+        let mut buff3 = "this is a link</a></html>".as_bytes();
+
+        assert_eq!(sreader.streamer.sink.features["url_depth"], 1);
+
+        sreader.with_chunk(&mut buff1);
+        assert_eq!(sreader.streamer.sink.features["p"], 1);
+
+        sreader.with_chunk(&mut buff2);
+        assert_eq!(sreader.streamer.sink.features["br"], 2);
+
+        sreader.with_chunk(&mut buff3);
+        assert_eq!(sreader.streamer.sink.features["a"], 1);
     }
 }
-
-
-
