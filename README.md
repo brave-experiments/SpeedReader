@@ -1,6 +1,6 @@
 # Brave SpeedReader
 
-**Private Prototype Repository**
+**Prototype Repository**
 
 This is the beginning of a prototype SpeedReader implementation that is intended to work across different environments of Brave.
 
