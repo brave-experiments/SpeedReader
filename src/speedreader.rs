@@ -95,9 +95,9 @@ impl SpeedReader {
         })
     }
 
-    pub fn with_chunk(&mut self, mut input: &mut &[u8]) {
+    pub fn with_chunk(&mut self, input: &mut &[u8]) {
         if self.document_readable() != Some(false) {
-            self.streamer.parse_fragment(&mut input);
+            self.streamer.parse_fragment(input);
         }
         // else NOOP - already decided the doc is not readable
     }

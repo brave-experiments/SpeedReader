@@ -48,7 +48,7 @@ impl FeatureExtractorStreamer {
         })
     }
 
-    pub fn parse_fragment<R>(&mut self, mut fragment: &mut R)
+    pub fn parse_fragment<R>(&mut self, fragment: &mut R)
     where
         R: Read,
     {
@@ -59,7 +59,7 @@ impl FeatureExtractorStreamer {
             self.qn.clone(),
             vec![]);
 
-        self.sink = dom.from_utf8().read_from(&mut fragment).expect("");
+        self.sink = dom.from_utf8().read_from(fragment).expect("");
     }
 
     pub fn set_url(&mut self, url: &Url) {
