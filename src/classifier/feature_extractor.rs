@@ -53,13 +53,17 @@ impl FeatureExtractorStreamer {
         R: Read,
     {
 
-        let dom = html5ever::parse_fragment(
-            self.sink.clone(),
-            ParseOpts::default(),
-            self.qn.clone(),
-            vec![]);
+      let dom = html5ever::parse_fragment(
+      	self.sink.clone(),
+				ParseOpts::default(),
+        self.qn.clone(),
+        vec![]);
 
-        self.sink = dom.from_utf8().read_from(fragment).expect("");
+			// to string
+    	let mut buffer = String::new();
+    	fragment.read_to_string(&mut buffer).expect("");
+
+			self.sink = dom.one(buffer);
     }
 
     pub fn set_url(&mut self, url: &Url) {
