@@ -9,7 +9,7 @@ use std::fs;
 
 fn main() {
     let url = Url::parse("http://example.com/hello/world/hello?again").unwrap();
-    let data = fs::read_to_string("./examples/html/bbc_1.html").expect("err to string");
+    let data = fs::read_to_string("./examples/html/bbc_new.html").expect("err to string");
 
     // feature extraction
     let mut extractor = FeatureExtractor::parse_document(&mut data.as_bytes(), &url).unwrap();

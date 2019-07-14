@@ -10,9 +10,9 @@ use markup5ever::{Namespace, LocalName, Prefix};
 
 fn main() {
     let url = Url::parse("http://example.com/hello/world/hello?again");
-    let frag1 = fs::read_to_string("./examples/html/frag1.html").expect("err to string");
-    let frag2 = fs::read_to_string("./examples/html/frag2.html").expect("err to string");
-    let frag3 = fs::read_to_string("./examples/html/frag3.html").expect("err to string");
+    let frag1 = fs::read_to_string("./examples/html/bbc_new1.html").expect("err to string");
+    let frag2 = fs::read_to_string("./examples/html/bbc_new2.html").expect("err to string");
+    //let frag3 = fs::read_to_string("./examples/html/frag3.html").expect("err to string");
 
     // feature extraction with chunker
     let qn = QualName::new(
@@ -25,7 +25,7 @@ fn main() {
     
     streamer.parse_fragment(&mut frag1.as_bytes());
     streamer.parse_fragment(&mut frag2.as_bytes());
-    streamer.parse_fragment(&mut frag3.as_bytes());
+    //streamer.parse_fragment(&mut frag3.as_bytes());
     streamer.set_url(&url.clone().unwrap());
 
     println!("======\n Features streamer:");
@@ -35,7 +35,7 @@ fn main() {
     }
 
     //feature extraction full
-    let full = fs::read_to_string("./examples/html/simple.html").expect("err to string");
+    let full = fs::read_to_string("./examples/html/bbc_new.html").expect("err to string");
     let extractor = FeatureExtractor::parse_document(&mut full.as_bytes(), &url.unwrap()).unwrap();
 
     println!("======\n Features full document:");
