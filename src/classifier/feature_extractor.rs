@@ -6,7 +6,7 @@ use std::string::String;
 use std::vec::Vec;
 
 use html5ever;
-use html5ever::driver::ParseOpts;
+use html5ever::driver::{Parser, ParseOpts};
 use html5ever::rcdom::Handle;
 use html5ever::rcdom::NodeData;
 use html5ever::rcdom::RcDom;
@@ -34,46 +34,7 @@ impl From<std::io::Error> for FeatureExtractorError {
     }
 }
 
-//#[derive(PartialEq)]
-pub struct FeatureExtractorStreamer {
-    pub sink: FeaturisingDom,
-    pub qn: QualName,
-}
-
-impl FeatureExtractorStreamer {
-    pub fn new(qn: QualName) -> Result<FeatureExtractorStreamer, FeatureExtractorError> {
-        Ok(FeatureExtractorStreamer {
-            sink: FeaturisingDom::default(),
-            qn,
-        })
-    }
-
-    pub fn parse_fragment<R>(&mut self, fragment: &mut R)
-    where
-        R: Read,
-    {
-
-      let dom = html5ever::parse_fragment(
-      	self.sink.clone(),
-				ParseOpts::default(),
-        self.qn.clone(),
-        vec![]);
-
-			// to string
-    	let mut buffer = String::new();
-    	fragment.read_to_string(&mut buffer).expect("");
-
-			self.sink = dom.one(buffer);
-    }
-
-    pub fn set_url(&mut self, url: &Url) {
-        self.sink.features.insert(
-            "url_depth".to_string(),
-            url_depth(url).unwrap() as u32,
-        );
-    }
-}
-
+// Feature extractor for full document
 pub struct FeatureExtractor {
     pub dom: RcDom,
     pub features: HashMap<String, u32>,
@@ -84,7 +45,7 @@ impl FeatureExtractor {
     where
         R: Read,
     {
-        let dom_features = html5ever::parse_document(FeaturisingDom::default(), Default::default())
+        let dom_features = html5ever::parse_document(FeaturisingTreeSink::default(), Default::default())
             .from_utf8()
             .read_from(doc)?;
 
@@ -101,19 +62,59 @@ impl FeatureExtractor {
     }
 }
 
+
+// Feature extractor which accepts chunks of data to parse
+pub struct FeatureExtractorStreamer {
+    pub inner: Parser<FeaturisingTreeSink>,
+}
+
+impl FeatureExtractorStreamer {
+    pub fn new(url: Url) -> Result<FeatureExtractorStreamer, FeatureExtractorError> {
+      let mut sink = FeaturisingTreeSink::default();
+      sink.features.insert(
+        "url_depth".to_string(),
+        url_depth(&url).unwrap() as u32,
+        );
+
+      let parser = html5ever::parse_document(
+        sink,
+	ParseOpts::default());
+
+        Ok(FeatureExtractorStreamer {
+            inner: parser,
+        })
+    }
+
+    pub fn write<R>(&mut self, fragment: &mut R)
+    where
+        R: Read,
+    {
+    	let mut buffer = String::new();
+    	fragment.read_to_string(&mut buffer).expect("");
+        self.inner.process(format_tendril!("{}", buffer));
+    }
+
+    pub fn finish(self) -> FeaturisingTreeSink {
+        self.inner.finish()
+    }
+
+    pub fn features(self) -> HashMap<String, u32> {
+        self.inner.tokenizer.sink.sink.features
+    }
+}
+
 fn url_depth(url: &Url) -> Result<usize, FeatureExtractorError> {
     url.path_segments()
         .map(std::iter::Iterator::count) // want number of segments only
         .ok_or_else(|| FeatureExtractorError::InvalidUrl(url.as_str().to_owned())) // return error
 }
 
-// #[derive(Copy, Clone)]
-pub struct FeaturisingDom {
+pub struct FeaturisingTreeSink {
     pub features: HashMap<String, u32>,
     pub rcdom: RcDom,
 }
 
-impl Clone for FeaturisingDom {
+impl Clone for FeaturisingTreeSink {
     fn clone(&self) -> Self {
         let mut cloned_f = HashMap::new();
         for (k, v) in self.features.iter() {
@@ -125,23 +126,23 @@ impl Clone for FeaturisingDom {
             quirks_mode: self.rcdom.quirks_mode.clone()
         };
 
-        FeaturisingDom {
+        FeaturisingTreeSink {
             features: cloned_f,
             rcdom: cloned_r,
         }
     }
 }
 
-impl Default for FeaturisingDom {
-    fn default() -> FeaturisingDom {
-        FeaturisingDom {
+impl Default for FeaturisingTreeSink {
+    fn default() -> FeaturisingTreeSink {
+        FeaturisingTreeSink {
             features: HashMap::new(),
             rcdom: RcDom::default(),
         }
     }
 }
 
-impl TreeSink for FeaturisingDom {
+impl TreeSink for FeaturisingTreeSink {
     type Output = Self;
     type Handle = Handle;
     fn finish(self) -> Self {
