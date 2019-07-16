@@ -14,9 +14,9 @@ fn main() {
 
     let mut streamer = FeatureExtractorStreamer::new(url.clone()).unwrap();
 
-    streamer.write(&mut frag1.as_bytes());
-    streamer.write(&mut frag2.as_bytes());
-    streamer.write(&mut frag3.as_bytes());
+    streamer.write(&mut frag1.as_bytes()).unwrap();
+    streamer.write(&mut frag2.as_bytes()).unwrap();
+    streamer.write(&mut frag3.as_bytes()).unwrap();
 
     let mut sink = streamer.finish();
 

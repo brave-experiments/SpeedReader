@@ -6,7 +6,7 @@ use std::string::String;
 use std::vec::Vec;
 
 use html5ever;
-use html5ever::driver::{Parser, ParseOpts};
+use html5ever::driver::{ParseOpts, Parser};
 use html5ever::rcdom::Handle;
 use html5ever::rcdom::NodeData;
 use html5ever::rcdom::RcDom;
@@ -41,19 +41,20 @@ pub struct FeatureExtractor {
 }
 
 impl FeatureExtractor {
-    pub fn parse_document<R>(doc: &mut R, url: &Url) -> Result<FeatureExtractor, FeatureExtractorError>
+    pub fn parse_document<R>(
+        doc: &mut R,
+        url: &Url,
+    ) -> Result<FeatureExtractor, FeatureExtractorError>
     where
         R: Read,
     {
-        let dom_features = html5ever::parse_document(FeaturisingTreeSink::default(), Default::default())
-            .from_utf8()
-            .read_from(doc)?;
+        let dom_features =
+            html5ever::parse_document(FeaturisingTreeSink::default(), Default::default())
+                .from_utf8()
+                .read_from(doc)?;
 
         let mut features = dom_features.features;
-        features.insert(
-            "url_depth".to_string(),
-            url_depth(url).unwrap() as u32,
-        );
+        features.insert("url_depth".to_string(), url_depth(url).unwrap() as u32);
 
         Ok(FeatureExtractor {
             dom: dom_features.rcdom,
@@ -62,44 +63,34 @@ impl FeatureExtractor {
     }
 }
 
-
 // Feature extractor which accepts chunks of data to parse
 pub struct FeatureExtractorStreamer {
-    pub inner: Parser<FeaturisingTreeSink>,
+    inner: Parser<FeaturisingTreeSink>,
 }
 
 impl FeatureExtractorStreamer {
-    pub fn new(url: Url) -> Result<FeatureExtractorStreamer, FeatureExtractorError> {
-      let mut sink = FeaturisingTreeSink::default();
-      sink.features.insert(
-        "url_depth".to_string(),
-        url_depth(&url).unwrap() as u32,
-        );
+    pub fn new(url: &Url) -> Result<FeatureExtractorStreamer, FeatureExtractorError> {
+        let mut sink = FeaturisingTreeSink::default();
+        sink.features
+            .insert("url_depth".to_string(), url_depth(url).unwrap() as u32);
 
-      let parser = html5ever::parse_document(
-        sink,
-	ParseOpts::default());
+        let parser = html5ever::parse_document(sink, ParseOpts::default());
 
-        Ok(FeatureExtractorStreamer {
-            inner: parser,
-        })
+        Ok(FeatureExtractorStreamer { inner: parser })
     }
 
-    pub fn write<R>(&mut self, fragment: &mut R)
-    where
-        R: Read,
-    {
-    	let mut buffer = String::new();
-    	fragment.read_to_string(&mut buffer).expect("");
-        self.inner.process(format_tendril!("{}", buffer));
+    pub fn write(&mut self, fragment: &mut &[u8]) -> Result<(), ()> {
+        let tend = StrTendril::try_from_byte_slice(fragment)?;
+        self.inner.process(tend);
+        Ok(())
     }
 
-    pub fn finish(self) -> FeaturisingTreeSink {
-        self.inner.finish()
+    pub fn finish(&mut self) -> &mut FeaturisingTreeSink {
+        &mut self.inner.tokenizer.sink.sink
     }
 
-    pub fn features(self) -> HashMap<String, u32> {
-        self.inner.tokenizer.sink.sink.features
+    pub fn features(&self) -> &HashMap<String, u32> {
+        &self.inner.tokenizer.sink.sink.features
     }
 }
 
@@ -120,10 +111,10 @@ impl Clone for FeaturisingTreeSink {
         for (k, v) in self.features.iter() {
             cloned_f.insert(k.to_string(), *v);
         }
-        let cloned_r = RcDom{
+        let cloned_r = RcDom {
             document: self.rcdom.document.clone(),
             errors: self.rcdom.errors.clone(),
-            quirks_mode: self.rcdom.quirks_mode.clone()
+            quirks_mode: self.rcdom.quirks_mode.clone(),
         };
 
         FeaturisingTreeSink {

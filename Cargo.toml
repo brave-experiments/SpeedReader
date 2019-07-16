@@ -18,7 +18,6 @@ regex = "1"
 url = "1.7"
 readability = { path = "src/readability" }
 lazy_static = "1.3"
-termion = "1.5"
 markup5ever = "0.8"
 
 [build-dependencies]
@@ -27,5 +26,5 @@ regex = "1"
 [dev-dependencies]
 matches = "0.1"
 distance = "0.4.0"
-
+termion = "1.5"
 
