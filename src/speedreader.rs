@@ -1,11 +1,10 @@
 use readability;
+use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::io::Read;
 use url::Url;
-//use std::collections::HashMap;
 
 use crate::classifier;
-//use html5ever::rcdom::RcDom;
 use classifier::feature_extractor::{FeatureExtractorStreamer, FeaturisingTreeSink};
 
 struct SpeedReaderDoc {
@@ -109,9 +108,12 @@ impl SpeedReader {
             })
     }
 
-    pub fn with_chunk(&mut self, input: &mut &[u8]) {
+    pub fn with_chunk(&mut self, input: &[u8]) {
         if self.document_readable() != Some(false) {
-            self.streamer.write(input);
+            match self.streamer.write(&mut input.borrow()) {
+                Err(_) => self.readable = RefCell::new(Some(false)),
+                _ => (),
+            }
         }
         // else NOOP - already decided the doc is not readable
     }
