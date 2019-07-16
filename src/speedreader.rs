@@ -2,6 +2,7 @@ use readability;
 use std::cell::RefCell;
 use std::io::Read;
 use url::Url;
+use std::borrow::Borrow;
 //use std::collections::HashMap;
 
 use crate::classifier;
@@ -109,9 +110,9 @@ impl SpeedReader {
             })
     }
 
-    pub fn with_chunk(&mut self, input: &mut &[u8]) {
+    pub fn with_chunk(&mut self, input: &[u8]) {
         if self.document_readable() != Some(false) {
-            self.streamer.write(input);
+            self.streamer.write(&mut input.borrow());
         }
         // else NOOP - already decided the doc is not readable
     }
