@@ -76,7 +76,7 @@ const DOC_CAPACITY_INCREMENTS: usize = 65536;
 pub struct SpeedReader {
     url: Option<Url>,
     readable: RefCell<Option<bool>>,
-    streamer: FeatureExtractorStreamer,
+    streamer: Option<FeatureExtractorStreamer>,
 }
 
 impl SpeedReader {
@@ -84,10 +84,9 @@ impl SpeedReader {
         let url_parsed = Url::parse(url);
 
         url_parsed
-            .clone()
             .map(|url| {
                 if url_maybe_readable(&url) {
-                    let streamer = FeatureExtractorStreamer::new(url.clone()).unwrap();
+                    let streamer = FeatureExtractorStreamer::new(url.clone()).ok();
                     SpeedReader {
                         url: Some(url),
                         readable: RefCell::new(None),
@@ -97,20 +96,21 @@ impl SpeedReader {
                     SpeedReader {
                         url: None,
                         readable: RefCell::new(Some(false)),
-                        streamer: FeatureExtractorStreamer::new(url).unwrap(),
+                        streamer: FeatureExtractorStreamer::new(url).ok(),
                     }
                 }
             })
             .unwrap_or_else(|_e| SpeedReader {
                 url: None,
                 readable: RefCell::new(Some(false)),
-                streamer: FeatureExtractorStreamer::new(url_parsed.unwrap()).unwrap(),
+                streamer: None,
             })
     }
 
     pub fn with_chunk(&mut self, input: &[u8]) {
-        if self.document_readable() != Some(false) {
-            match self.streamer.write(&mut input.borrow()) {
+        if self.document_readable() != Some(false) && self.streamer.is_some() {
+            let streamer = self.streamer.as_mut().unwrap();
+            match streamer.write(&mut input.borrow()) {
                 Err(_) => *self.readable.borrow_mut() = Some(false),
                 _ => (),
             }
@@ -124,14 +124,15 @@ impl SpeedReader {
 
     pub fn finalize(&mut self) -> Option<String> {
         // No valid URL - no document
-        if self.url.is_none() {
+        if self.url.is_none() || self.streamer.is_none() {
             return None;
         }
         // Already decided the document is not readable
         if self.document_readable() == Some(false) {
             return None;
         }
-        let processed = process(self.streamer.finish(), self.url.as_ref().unwrap());
+        let streamer = self.streamer.as_mut().unwrap();
+        let processed = process(streamer.finish(), self.url.as_ref().unwrap());
 
         *self.readable.borrow_mut() = Some(processed.readable);
         if processed.readable {
@@ -157,7 +158,7 @@ mod tests {
         sreader.with_chunk(&mut buff1);
         sreader.with_chunk(&mut buff2);
         sreader.with_chunk(&mut buff3);
-        let result_sink = sreader.streamer.finish();
+        let result_sink = sreader.streamer.as_mut().unwrap().finish();
 
         assert_eq!(result_sink.features["url_depth"], 1);
         assert_eq!(result_sink.features["p"], 1);
