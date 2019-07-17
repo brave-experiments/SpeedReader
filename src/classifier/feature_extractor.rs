@@ -65,7 +65,7 @@ impl FeatureExtractor {
 
 // Feature extractor which accepts chunks of data to parse
 pub struct FeatureExtractorStreamer {
-    pub inner: Parser<FeaturisingTreeSink>,
+    inner: Parser<FeaturisingTreeSink>,
 }
 
 impl FeatureExtractorStreamer {
@@ -85,12 +85,12 @@ impl FeatureExtractorStreamer {
         Ok(())
     }
 
-    pub fn finish(self) -> FeaturisingTreeSink {
-        self.inner.finish()
+    pub fn finish(&mut self) -> &mut FeaturisingTreeSink {
+        &mut self.inner.tokenizer.sink.sink
     }
 
-    pub fn features(self) -> HashMap<String, u32> {
-        self.inner.tokenizer.sink.sink.features
+    pub fn features(&self) -> &HashMap<String, u32> {
+        &self.inner.tokenizer.sink.sink.features
     }
 }
 

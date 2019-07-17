@@ -12,7 +12,7 @@ struct SpeedReaderDoc {
     pub doc: Option<String>,
 }
 
-fn process(mut sink: FeaturisingTreeSink, url: &Url) -> SpeedReaderDoc {
+fn process(sink: &mut FeaturisingTreeSink, url: &Url) -> SpeedReaderDoc {
     let class = classifier::Classifier::from_feature_map(&sink.features).classify();
     if class == 0 {
         SpeedReaderDoc {
@@ -111,7 +111,7 @@ impl SpeedReader {
     pub fn with_chunk(&mut self, input: &[u8]) {
         if self.document_readable() != Some(false) {
             match self.streamer.write(&mut input.borrow()) {
-                Err(_) => self.readable = RefCell::new(Some(false)),
+                Err(_) => *self.readable.borrow_mut() = Some(false),
                 _ => (),
             }
         }
@@ -122,7 +122,7 @@ impl SpeedReader {
         *self.readable.borrow()
     }
 
-    pub fn finalize(self) -> Option<String> {
+    pub fn finalize(&mut self) -> Option<String> {
         // No valid URL - no document
         if self.url.is_none() {
             return None;
