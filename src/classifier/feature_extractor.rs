@@ -69,10 +69,10 @@ pub struct FeatureExtractorStreamer {
 }
 
 impl FeatureExtractorStreamer {
-    pub fn new(url: Url) -> Result<FeatureExtractorStreamer, FeatureExtractorError> {
+    pub fn new(url: &Url) -> Result<FeatureExtractorStreamer, FeatureExtractorError> {
         let mut sink = FeaturisingTreeSink::default();
         sink.features
-            .insert("url_depth".to_string(), url_depth(&url).unwrap() as u32);
+            .insert("url_depth".to_string(), url_depth(url).unwrap() as u32);
 
         let parser = html5ever::parse_document(sink, ParseOpts::default());
 

@@ -86,7 +86,7 @@ impl SpeedReader {
         url_parsed
             .map(|url| {
                 if url_maybe_readable(&url) {
-                    let streamer = FeatureExtractorStreamer::new(url.clone()).ok();
+                    let streamer = FeatureExtractorStreamer::new(&url).ok();
                     SpeedReader {
                         url: Some(url),
                         readable: RefCell::new(None),
@@ -96,7 +96,7 @@ impl SpeedReader {
                     SpeedReader {
                         url: None,
                         readable: RefCell::new(Some(false)),
-                        streamer: FeatureExtractorStreamer::new(url).ok(),
+                        streamer: None,
                     }
                 }
             })
@@ -131,8 +131,9 @@ impl SpeedReader {
         if self.document_readable() == Some(false) {
             return None;
         }
+        let url = self.url.as_ref().unwrap();
         let streamer = self.streamer.as_mut().unwrap();
-        let processed = process(streamer.finish(), self.url.as_ref().unwrap());
+        let processed = process(streamer.finish(), url);
 
         *self.readable.borrow_mut() = Some(processed.readable);
         if processed.readable {
