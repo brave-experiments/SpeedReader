@@ -5,14 +5,14 @@ use html5ever::rcdom::{Handle, Node};
 use html5ever::Attribute;
 use std::str::FromStr;
 
-pub fn get_tag_name(handle: Handle) -> Option<String> {
+pub fn get_tag_name(handle: &Handle) -> Option<String> {
     match handle.data {
         Element { ref name,  .. } => Some(name.local.as_ref().to_lowercase().to_string()),
         _ => None,
     }
 }
 
-pub fn get_attr<'a>(name: &str, handle: Handle) -> Option<String> {
+pub fn get_attr<'a>(name: &str, handle: &Handle) -> Option<String> {
     match handle.data {
         Element { name: _, ref attrs, .. } => attr(name, &attrs.borrow()),
         _                                  => None,
@@ -58,10 +58,9 @@ pub fn clean_attr(attr_name: &str, attrs: &mut Vec<Attribute>) {
     }
 }
 
-pub fn is_empty(handle: Handle) -> bool {
+pub fn is_empty(handle: &Handle) -> bool {
     for child in handle.children.borrow().iter() {
-        let c = child.clone();
-        match c.data {
+        match child.data {
             Text { ref contents } => {
                 if contents.borrow().trim().len() > 0 {
                     return false
@@ -71,7 +70,7 @@ pub fn is_empty(handle: Handle) -> bool {
                 let tag_name = name.local.as_ref();
                 match tag_name.to_lowercase().as_ref() {
                     "li" | "dt" | "dd" | "p" | "div" => {
-                        if !is_empty(child.clone()) {
+                        if !is_empty(child) {
                             return false
                         }
                     },
@@ -81,34 +80,33 @@ pub fn is_empty(handle: Handle) -> bool {
             _ => ()
         }
     }
-    match get_tag_name(handle.clone()).unwrap_or_default().as_ref() {
+    match get_tag_name(&handle).unwrap_or_default().as_ref() {
         "li" | "dt" | "dd" | "p" | "div" | "canvas" => true,
         _ => false,
     }
 }
 
-pub fn has_link(handle: Handle) -> bool {
-    if "a" == &get_tag_name(handle.clone()).unwrap_or_default() {
+pub fn has_link(handle: &Handle) -> bool {
+    if "a" == &get_tag_name(handle).unwrap_or_default() {
         return true
     }
     for child in handle.children.borrow().iter() {
-        if has_link(child.clone()) {
+        if has_link(child) {
             return true
         }
     }
     return false
 }
 
-pub fn extract_text(handle: Handle, text: &mut String, deep: bool) {
+pub fn extract_text(handle: &Handle, text: &mut String, deep: bool) {
     for child in handle.children.borrow().iter() {
-        let c = child.clone();
-        match c.data {
+        match child.data {
             Text { ref contents } => {
                 text.push_str(contents.borrow().trim());
             },
             Element { .. } => {
                 if deep {
-                    extract_text(child.clone(), text, deep);
+                    extract_text(child, text, deep);
                 }
             },
             _ => ()
@@ -116,16 +114,15 @@ pub fn extract_text(handle: Handle, text: &mut String, deep: bool) {
     }
 }
 
-pub fn text_len(handle: Handle) -> usize {
+pub fn text_len(handle: &Handle) -> usize {
     let mut len = 0;
     for child in handle.children.borrow().iter() {
-        let c = child.clone();
-        match c.data {
+        match child.data {
             Text { ref contents } => {
                 len += contents.borrow().trim().chars().count();
             },
             Element { .. } => {
-                len += text_len(child.clone());
+                len += text_len(child);
             },
             _ => ()
         }
@@ -133,31 +130,30 @@ pub fn text_len(handle: Handle) -> usize {
     len
 }
 
-pub fn find_node(handle: Handle, tag_name: &str, nodes: &mut Vec<Rc<Node>>) {
+pub fn find_node(handle: &Handle, tag_name: &str, nodes: &mut Vec<Rc<Node>>) {
     for child in handle.children.borrow().iter() {
-        let c = child.clone();
-        match c.data {
+        match child.data {
             Element { ref name, .. } => {
                 let t = name.local.as_ref();
                 if t.to_lowercase() == tag_name {
                     nodes.push(child.clone());
                 };
-                find_node(child.clone(), tag_name, nodes)
+                find_node(child, tag_name, nodes)
             },
             _ => ()
         }
     }
 }
 
-pub fn has_nodes(handle: Handle, tag_names: &Vec<&'static str>) -> bool {
+pub fn has_nodes(handle: &Handle, tag_names: &Vec<&'static str>) -> bool {
     for child in handle.children.borrow().iter() {
-        let tag_name: &str = &get_tag_name(child.clone()).unwrap_or_default();
+        let tag_name: &str = &get_tag_name(child).unwrap_or_default();
         if tag_names.iter().any(|&n| n == tag_name) {
             return true
         }
-        if match child.clone().data {
+        if match child.data {
             Element { .. } => {
-                has_nodes(child.clone(), tag_names)
+                has_nodes(child, tag_names)
             },
             _ => false,
         } {
@@ -167,16 +163,18 @@ pub fn has_nodes(handle: Handle, tag_names: &Vec<&'static str>) -> bool {
     return false
 }
 
-pub fn text_children_count(handle: Handle) -> usize {
+pub fn text_children_count(handle: &Handle) -> usize {
     let mut count = 0;
     for child in handle.children.borrow().iter() {
-        let c = child.clone();
-        match c.data {
+        match child.data {
             Text { ref contents } => {
                 let s = contents.borrow();
                 if s.trim().len() >= 20 {
                     count += 1
                 }
+            },
+            Element { .. } => {
+                count += text_children_count(child)
             },
             _ => ()
         }

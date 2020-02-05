@@ -56,7 +56,7 @@ pub struct Candidate {
 }
 
 pub fn fix_img_path(handle: Handle, url: &Url) -> bool {
-    let src = dom::get_attr("src", handle.clone());
+    let src = dom::get_attr("src", &handle);
     if src.is_none() {
         return false
     }
@@ -70,16 +70,16 @@ pub fn fix_img_path(handle: Handle, url: &Url) -> bool {
     true
 }
 
-pub fn get_link_density(handle: Handle) -> f32 {
-    let text_length = dom::text_len(handle.clone()) as f32;
+pub fn get_link_density(handle: &Handle) -> f32 {
+    let text_length = dom::text_len(&handle) as f32;
     if text_length == 0.0 {
         return 0.0;
     }
     let mut link_length = 0.0;
     let mut links: Vec<Rc<Node>> = vec![];
-    dom::find_node(handle.clone(), "a", &mut links);
+    dom::find_node(&handle, "a", &mut links);
     for link in links.iter() {
-        link_length += dom::text_len(link.clone()) as f32;
+        link_length += dom::text_len(&link) as f32;
     }
     link_length / text_length
 }
@@ -87,22 +87,25 @@ pub fn get_link_density(handle: Handle) -> f32 {
 // is candidate iif lenght of the text is larger than 20 words AND its tag is
 // is `div`, `article`, `center`, `section` while not in containing nodes in
 // BLOCK_CHILD_TAGS
-pub fn is_candidate(handle: Handle) -> bool {
-    let text_len = dom::text_len(handle.clone());
+pub fn is_candidate(handle: &Handle) -> bool {
+    let text_len = dom::text_len(&handle);
     if text_len < 20 {
         return false
     }
-    let n: &str = &dom::get_tag_name(handle. clone()).unwrap_or_default();
-    match n {
-        "p" => true,
-        "div" | "article" | "center" | "section" =>
-            !dom::has_nodes(handle.clone(), &BLOCK_CHILD_TAGS.iter().map(|t| *t).collect()),
-        _ => false
+    if let Some(tag_name) = dom::get_tag_name(handle) {
+        match tag_name.as_str() {
+            "p" => true,
+            "div" | "article" | "center" | "section" =>
+                !dom::has_nodes(&handle, &BLOCK_CHILD_TAGS.iter().map(|t| *t).collect()),
+            _ => false
+        }
+    } else {
+        false
     }
 }
 
-pub fn init_content_score(handle: Handle) -> f32 {
-    let tag_name = dom::get_tag_name(handle.clone()).unwrap_or_default();
+pub fn init_content_score(handle: &Handle) -> f32 {
+    let tag_name = dom::get_tag_name(&handle).unwrap_or_default();
     let score = match tag_name.as_ref() {
         "article"    => 10.0,
         "div"        => 5.0,
@@ -120,20 +123,20 @@ pub fn init_content_score(handle: Handle) -> f32 {
         "form"       => -3.0,
         _            => 0.0,
     };
-    score + get_class_weight(handle.clone())
+    score + get_class_weight(handle)
 }
 
-pub fn calc_content_score(handle: Handle) -> f32 {
+pub fn calc_content_score(handle: &Handle) -> f32 {
     let mut score: f32 = 1.0;
     let mut text = String::new();
-    dom::extract_text(handle.clone(), &mut text, true);
+    dom::extract_text(handle, &mut text, true);
     let mat = PUNCTUATIONS.find_iter(&text);
     score += mat.count() as f32;
     score += f32::min(f32::floor(text.chars().count() as f32 / 100.0), 3.0);
     return score
 }
 
-pub fn get_class_weight(handle: Handle) -> f32 {
+pub fn get_class_weight(handle: &Handle) -> f32 {
     let mut weight: f32 = 0.0;
     match handle.data {
         Element { name: _, ref attrs, .. } => {
@@ -157,14 +160,14 @@ pub fn get_class_weight(handle: Handle) -> f32 {
 }
 
 pub fn preprocess(mut dom: &mut RcDom, handle: Handle, mut title: &mut String) -> bool {
-    match handle.clone().data {
+    match handle.data {
         Element { ref name, ref attrs, .. } => {
             let tag_name = name.local.as_ref();
             match tag_name.to_lowercase().as_ref() {
                 "script" | "link" | "style"  => {
                     return true
                 },
-                "title" => dom::extract_text(handle.clone(), &mut title, true),
+                "title" => dom::extract_text(&handle, &mut title, true),
                 _     => (),
             }
             for name in ["id", "class"].iter() {
@@ -186,8 +189,7 @@ pub fn preprocess(mut dom: &mut RcDom, handle: Handle, mut title: &mut String) -
         if preprocess(&mut dom, child.clone(), &mut title) {
             useless_nodes.push(child.clone());
         }
-        let c = child.clone();
-        match c.data {
+        match child.data {
             Element { ref name, .. } => {
                 let tag_name = name.local.as_ref();
                 if "br" == tag_name.to_lowercase() {
@@ -214,10 +216,9 @@ pub fn preprocess(mut dom: &mut RcDom, handle: Handle, mut title: &mut String) -
         let p = dom.create_element(name, vec![], ElementFlags::default());
         dom.append_before_sibling(node, NodeOrText::AppendNode(p.clone()));
         dom.remove_from_parent(node);
-        match node.clone().data {
+        match node.data {
             Text { ref contents } => {
-                let text = contents.clone().into_inner().clone();
-                dom.append(&p, NodeOrText::AppendText(text))
+                dom.append(&p, NodeOrText::AppendText(contents.borrow().clone()))
             },
             _ => (),
         }
@@ -237,13 +238,13 @@ pub fn find_candidates(mut dom:    &mut RcDom,
         nodes.insert(id, handle.clone());
     }
 
-    // is candidate iif lenght of the text in handle is larger than 20 words AND 
+    // is candidate iif length of the text in handle is larger than 20 words AND 
     // its tag is `div`, `article`, `center`, `section` while not in containing 
     // nodes in BLOCK_CHILD_TAGS
 
-    if is_candidate(handle.clone()) {
+    if is_candidate(&handle) {
         // calculates the content score of the current candidate
-        let score = calc_content_score(handle.clone());
+        let score = calc_content_score(&handle);
 
         // adds candidate's score to ALL of its parents in the tree, rescursively
         // the scoring impact of child nodes in ALL upper nodes decays as the 
@@ -311,7 +312,7 @@ fn find_or_create_candidate<'a>(id: &Path,
             if candidates.get(&id).is_none() {
                 candidates.insert(id.clone(), Candidate {
                     node:  node.clone(),
-                    score: Cell::new(init_content_score(node.clone())),
+                    score: Cell::new(init_content_score(&node)),
                 });
             }
             return candidates.get(&id)
@@ -341,7 +342,7 @@ pub fn clean(mut dom: &mut RcDom, id: &Path, handle: Handle, url: &Url, title: &
                         useless = true
                 },
                 "form" | "table" | "ul" | "div" => {
-                    useless = is_useless(id, handle.clone(), candidates)
+                    useless = is_useless(id, &handle, candidates)
                 },
                 "img" => {
                     useless = !fix_img_path(handle.clone(), url);
@@ -366,39 +367,39 @@ pub fn clean(mut dom: &mut RcDom, id: &Path, handle: Handle, url: &Url, title: &
     for node in useless_nodes.iter() {
         dom.remove_from_parent(node);
     }
-    if dom::is_empty(handle) {
+    if dom::is_empty(&handle) {
         useless = true
     }
     useless
 }
 
-pub fn is_useless(id: &Path, handle: Handle, candidates: &BTreeMap<String, Candidate>) -> bool {
-    let tag_name = &dom::get_tag_name(handle.clone()).unwrap_or_default();
-    let weight = get_class_weight(handle.clone());
+pub fn is_useless(id: &Path, handle: &Handle, candidates: &BTreeMap<String, Candidate>) -> bool {
+    let tag_name = &dom::get_tag_name(&handle).unwrap_or_default();
+    let weight = get_class_weight(&handle);
     let score = id.to_str()
         .and_then(|id| candidates.get(id))
         .map(|c| c.score.get()).unwrap_or(0.0);
     if weight + score < 0.0 {
         return true
     }
-    let text_nodes_len = dom::text_children_count(handle.clone());
+    let text_nodes_len = dom::text_children_count(&handle);
     let mut p_nodes:     Vec<Rc<Node>> = vec![];
     let mut img_nodes:   Vec<Rc<Node>> = vec![];
     let mut li_nodes:    Vec<Rc<Node>> = vec![];
     let mut input_nodes: Vec<Rc<Node>> = vec![];
     let mut embed_nodes: Vec<Rc<Node>> = vec![];
-    dom::find_node(handle.clone(), "p"     , &mut p_nodes);
-    dom::find_node(handle.clone(), "img"   , &mut img_nodes);
-    dom::find_node(handle.clone(), "li"    , &mut li_nodes);
-    dom::find_node(handle.clone(), "input" , &mut input_nodes);
-    dom::find_node(handle.clone(), "embed" , &mut embed_nodes);
+    dom::find_node(&handle, "p"     , &mut p_nodes);
+    dom::find_node(&handle, "img"   , &mut img_nodes);
+    dom::find_node(&handle, "li"    , &mut li_nodes);
+    dom::find_node(&handle, "input" , &mut input_nodes);
+    dom::find_node(&handle, "embed" , &mut embed_nodes);
     let p_count        = p_nodes.len();
     let img_count      = img_nodes.len();
     let li_count       = li_nodes.len() as i32 - 100;
     let input_count    = input_nodes.len();
     let embed_count    = embed_nodes.len();
-    let link_density   = get_link_density(handle.clone());
-    let content_length = dom::text_len(handle.clone());
+    let link_density   = get_link_density(handle);
+    let content_length = dom::text_len(&handle);
     let para_count = text_nodes_len + p_count;
 
     //if img_count > para_count + text_nodes_len {
