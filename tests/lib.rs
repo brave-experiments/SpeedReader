@@ -113,34 +113,9 @@ fn tags_match_approx(d1: Handle, d2: Handle, tag_name: &str, attr_name: &str, ap
     for (i, _) in values_d1.clone().iter().enumerate() {
         if values_d1[i] != values_d2[i] {
             approx_counter -= 1;  
-            if approx_counter == 0 {
+            if approx_counter <= 0 {
                 return false;
             }
-        } 
-    }
-    true
-}
-
-// stricly compares if DOMs keep the same number and value of the tuple
-// (tag_name, attr_name)
-fn tags_match_strict(d1: Handle, d2: Handle, tag_name: &str, attr_name: &str) -> bool {
-    let mut values_d1 = Vec::new();
-    let mut values_d2 = Vec::new(); 
-    stripped_content(d1, tag_name, attr_name, &mut Vec::new(), &mut values_d1);
-    stripped_content(d2, tag_name, attr_name, &mut Vec::new(), &mut values_d2);
-
-    if values_d1.len() > values_d2.len() + 5 {
-        println!("{:#?}\n != \n{:#?}", values_d1, values_d2);
-        return false;
-    }
-
-    values_d1.sort();
-    values_d2.sort();
-
-    for (i, _) in values_d1.clone().iter().enumerate() {
-        if values_d1[i] != values_d2[i] {
-            println!("{:#?}\n != \n{:#?}", values_d1, values_d2);
-            return false;
         } 
     }
     true
