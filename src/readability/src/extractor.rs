@@ -21,12 +21,12 @@ pub struct Product {
 }
 
 pub fn extract<R>(input: &mut R, url: &Url) -> Result<Product, Error> where R: Read {
-        let mut dom = parse_document(RcDom::default(), Default::default())
-                    .from_utf8()
-                            .read_from(input)
-                                    .unwrap();
+    let mut dom = parse_document(RcDom::default(), Default::default())
+        .from_utf8()
+        .read_from(input)
+        .unwrap();
 
-            extract_dom(&mut dom, url, &HashMap::new())
+    extract_dom(&mut dom, url, &HashMap::new())
 }
 
 pub fn extract_dom(mut dom: &mut RcDom, url: &Url, features: &HashMap<String, u32>) -> Result<Product, Error> {

@@ -29,14 +29,14 @@ pub static LIKELY_CANDIDATES: &'static str = "and|article|body|column|main\
     |shadow\
     |a";
 pub static POSITIVE_CANDIDATES: &'static str = "article|body|content|entry\
-        |hentry|h-entry|main|page|pagination|post|text|blog|story";
+        |hentry|h-entry|main|page|pagination|post|text|blog|story|paragraph|speakable";
 pub static NEGATIVE_CANDIDATES: &'static str = "hidden|^hid$|hid$|hid|^hid\
         |banner|combx|comment|com-|contact|foot|footer|footnote|gdpr|header\
         |legends|menu|related|remark|replies|rss|shoutbox|sidebar|skyscraper\
         |social|sponsor|supplemental|ad-break|agegate|pagination|pager|popup\
         yom-remote";
-static BLOCK_CHILD_TAGS: [&'static str; 11] = [
-    "a", "blockquote", "dl", "div", "img", "ol", "p", "pre", "table", "ul",
+static BLOCK_CHILD_TAGS: [&'static str; 9] = [
+    "a", "blockquote", "dl", "ol", "p", "pre", "table", "ul",
     "select",
 ];
 
@@ -109,6 +109,7 @@ pub fn init_content_score(handle: &Handle) -> f32 {
     let score = match tag_name.as_ref() {
         "article"    => 10.0,
         "div"        => 5.0,
+        "h1" | "h2" | "h3" | "h4" => 5.0,
         "blockquote" => 3.0,
         "pre"        => 3.0,
         "td"         => 3.0,
@@ -143,7 +144,7 @@ pub fn get_class_weight(handle: &Handle) -> f32 {
             for name in ["id", "class"].iter() {
                 if let Some(val) = dom::attr(name, &attrs.borrow()) {
                     if val == "" {
-                        weight -= 25.0
+                        weight -= 3.0
                     } 
                     if POSITIVE.is_match(&val) {
                         weight += 25.0
@@ -170,7 +171,7 @@ pub fn preprocess(mut dom: &mut RcDom, handle: Handle, mut title: &mut String) -
                 "title" => dom::extract_text(&handle, &mut title, true),
                 _     => (),
             }
-            for name in ["id", "class"].iter() {
+            for name in ["id", "class", "itemProp"].iter() {
                 if let Some(val) = dom::attr(name, &attrs.borrow()) {
                     if tag_name != "body" && UNLIKELY.is_match(&val) {
                         if !LIKELY.is_match(&val) {
@@ -411,10 +412,10 @@ pub fn is_useless(id: &Path, handle: &Handle, candidates: &BTreeMap<String, Cand
     if input_count as f32 > f32::floor(para_count as f32 / 3.0) {
         return true
     }
-    if content_length < 25 && (img_count == 0 || img_count > 2) {
+    if content_length < 10 && (img_count == 0 || img_count > 2) {
         return true
     }
-    if weight < 25.0 && link_density > 0.2 {
+    if weight < 10.0 && link_density > 0.1 {
         return true
     }
     if (embed_count == 1 && content_length < 35) || embed_count > 1 {
