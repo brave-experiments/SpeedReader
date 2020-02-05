@@ -55,7 +55,7 @@ pub fn extract_dom(mut dom: &mut RcDom, url: &Url, features: &HashMap<String, u3
 
     // scores all candidate nodes
     for (i, c) in candidates.iter() {
-        let score = c.score.get() * (1.0 - scorer::get_link_density(c.node.clone()));
+        let score = c.score.get() * (1.0 - scorer::get_link_density(&c.node));
         c.score.set(score);
         if score <= top_candidate.score.get() {
             continue;
@@ -66,14 +66,13 @@ pub fn extract_dom(mut dom: &mut RcDom, url: &Url, features: &HashMap<String, u3
 
     let mut bytes = vec![];
 
-    let node = top_candidate.node.clone();
-    scorer::clean(&mut dom, Path::new(id), node.clone(), url, &title, features, &candidates);
+    scorer::clean(&mut dom, Path::new(id), top_candidate.node.clone(), url, &title, features, &candidates);
 
-    serialize(&mut bytes, &node, Default::default()).ok();
+    serialize(&mut bytes, &top_candidate.node, Default::default()).ok();
     let content = String::from_utf8(bytes).unwrap_or_default();
 
     let mut text: String = String::new();
-    dom::extract_text(node.clone(), &mut text, true);
+    dom::extract_text(&top_candidate.node, &mut text, true);
     Ok(Product { title: title, content: content, text: text })
 }
 

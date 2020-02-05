@@ -111,7 +111,7 @@ fn tags_match_approx(d1: Handle, d2: Handle, tag_name: &str, attr_name: &str, ap
 
     let mut approx_counter = approx_factor;
     for (i, _) in values_d1.clone().iter().enumerate() {
-        if values_d1[i] != values_d2[i] {
+        if values_d2.len() > i && values_d1[i] != values_d2[i] {
             approx_counter -= 1;  
             if approx_counter <= 0 {
                 return false;
@@ -226,9 +226,9 @@ mod test {
 // passing 
 
 test!(ars_1);
-// test!(cnet);
-// test!(folha);
-// test!(liberation_1);
+test!(cnet);
+test!(folha);
+test!(liberation_1);
 // test!(metadata_content_missing);
 // test!(msn);
 // test!(rtl_1);
