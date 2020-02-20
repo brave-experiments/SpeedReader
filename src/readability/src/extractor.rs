@@ -9,7 +9,6 @@ use html5ever::tendril::TendrilSink;
 use std::default::Default;
 use url::Url;
 use error::Error;
-use dom;
 use scorer;
 use scorer::Candidate;
 
@@ -17,7 +16,6 @@ use scorer::Candidate;
 pub struct Product {
     pub title:     String,
     pub content:   String,
-    pub text:      String,
 }
 
 pub fn extract<R>(input: &mut R, url: &Url) -> Result<Product, Error> where R: Read {
@@ -71,9 +69,7 @@ pub fn extract_dom(mut dom: &mut RcDom, url: &Url, features: &HashMap<String, u3
     serialize(&mut bytes, &top_candidate.node, Default::default()).ok();
     let content = String::from_utf8(bytes).unwrap_or_default();
 
-    let mut text: String = String::new();
-    dom::extract_text(&top_candidate.node, &mut text, true);
-    Ok(Product { title: title, content: content, text: text })
+    Ok(Product { title: title, content: content })
 }
 
 

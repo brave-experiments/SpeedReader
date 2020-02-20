@@ -14,7 +14,7 @@ extern crate lazy_static;
 
 
 use readability::extractor;
-use speedreader::classifier::feature_extractor::FeatureExtractor;
+use speedreader::classifier::feature_extractor::FeatureExtractorStreamer;
 use std::fs::File;
 use std::io::Read;
 use std::collections::HashSet;
@@ -24,6 +24,7 @@ use std::rc::Rc;
 use std::vec::Vec;
 use html5ever::rcdom::{Node, Handle};
 use html5ever::rcdom::NodeData::{Element, Text};
+use html5ever::rcdom::RcDom;
 use regex::Regex;
 use termion;
 
@@ -141,15 +142,15 @@ fn lcs(left: &Vec<String>, right: &Vec<String>) -> (usize, Vec<String>){
     (table[total_rows - 1][total_columns - 1], common_seq)
 }
 
-fn get_flat_dom_nodes(document: &FeatureExtractor) -> Vec<String> {
+fn get_flat_dom_nodes(dom: &RcDom) -> Vec<String> {
     let mut expected_nodes = Vec::new();
     // checks full flattened tree for a subset of (tags, attrs)
     let mut tags = HashSet::new();
     // #TODO: check a tags and imgs too, but for now focus on text
-    //tags.insert("a".to_owned());
+    tags.insert("a".to_owned());
     //tags.insert("img".to_owned());
     
-    extract_flattened_tree(document.dom.document.clone(), &tags, &mut expected_nodes);
+    extract_flattened_tree(dom.document.clone(), &tags, &mut expected_nodes);
 
     lazy_static! {
         static ref WHITESPACE: Regex = Regex::new(r"(\s\s+)").unwrap();
@@ -213,21 +214,21 @@ fn test_contents(name: &str) {
 
     // opens and parses the expected final result into a rcdom 
     // (for comparing with the result)
-    let expected_string = load_test_files(name);
-    let expected = FeatureExtractor::parse_document(
-        &mut expected_string.as_bytes(), &url
-    ).unwrap();
+    let expected_string = load_test_files(stringify!($name));
+    let mut feature_extractor = FeatureExtractorStreamer::try_new(&url).unwrap();
+    feature_extractor.write(&mut expected_string.as_bytes()).unwrap();
+    let expected = feature_extractor.end();
 
-    let expected_nodes_str = get_flat_dom_nodes(&expected);
+    let expected_nodes_str = get_flat_dom_nodes(&expected.rcdom);
 
     // uses the mapper build the mapper based on the source HTML
     // document
     let product = extractor::extract(&mut source_f, &url).unwrap();
-    let result = FeatureExtractor::parse_document(
-        &mut product.content.as_bytes(), &url
-    ).unwrap();
+    let mut feature_extractor = FeatureExtractorStreamer::try_new(&url).unwrap();
+    feature_extractor.write(&mut product.content.as_bytes()).unwrap();
+    let result = feature_extractor.end();
 
-    let got_nodes_str = get_flat_dom_nodes(&result);
+    let got_nodes_str = get_flat_dom_nodes(&result.rcdom);
 
     let (_, subsequence) = lcs(&expected_nodes_str, &got_nodes_str);
 
@@ -236,14 +237,14 @@ fn test_contents(name: &str) {
         generate_comparison(&expected_nodes_str, &got_nodes_str, &subsequence));
 }
 
-macro_rules! test_str {
-    ($name:ident) => {
-        #[test]
-        fn $name() {
-            test_contents(stringify!($name))
-        }
-    }
-}
+// macro_rules! test_str {
+//     ($name:ident) => {
+//         #[test]
+//         fn $name() {
+//             test_contents(stringify!($name))
+//         }
+//     }
+// }
 
 // // - salon_1 has whole front of an article missing
 // test_str!(salon_1);

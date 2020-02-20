@@ -6,7 +6,7 @@ extern crate html5ever;
 extern crate distance;
 
 use readability::extractor::extract;
-use speedreader::classifier::feature_extractor::FeatureExtractor;
+use speedreader::classifier::feature_extractor::FeatureExtractorStreamer;
 use std::fs::File;
 use std::io::Read;
 use url::Url;
@@ -168,16 +168,16 @@ mod test {
                  // opens and parses the expected final result into a rcdom 
                  // (for comparing with the result)
                  let expected_string = load_test_files(stringify!($name));
-                 let expected = FeatureExtractor::parse_document(
-                    &mut expected_string.as_bytes(), &url
-                 ).unwrap();
+                 let mut feature_extractor = FeatureExtractorStreamer::try_new(&url).unwrap();
+                 feature_extractor.write(&mut expected_string.as_bytes()).unwrap();
+                 let expected = feature_extractor.end();
 
                  // uses the mapper build the mapper based on the source HTML
                  // document
                  let product = extract(&mut source_f, &url).unwrap();
-                 let result = FeatureExtractor::parse_document(
-                   &mut product.content.as_bytes(), &url
-                 ).unwrap();
+                 let mut feature_extractor = FeatureExtractorStreamer::try_new(&url).unwrap();
+                 feature_extractor.write(&mut product.content.as_bytes()).unwrap();
+                 let result = feature_extractor.end();
 
                  // checks full flattened tree for a subset of (tags, attrs)
                  //let mut tags_attrs: Vec<(&str, &str)> = Vec::new();
@@ -192,14 +192,14 @@ mod test {
                  //assert!(flattened_tree_match, "Full flattened trees do not strictly match");
                  
                  let atags_match = tags_match_approx(
-                     expected.dom.document.clone(), 
-                     result.dom.document.clone(), "a", "href", 5);
+                     expected.rcdom.document.clone(), 
+                     result.rcdom.document.clone(), "a", "href", 5);
 
                  assert!(atags_match, "Node values of <a href=''> do not approximately match");
 
                  let imgtags_match = tags_match_approx(
-                     expected.dom.document.clone(), 
-                     result.dom.document.clone(), "img", "src", 5);
+                     expected.rcdom.document.clone(), 
+                     result.rcdom.document.clone(), "img", "src", 5);
 
                  assert!(imgtags_match, "Node values of <img src=''> do not strictly match");
 
@@ -211,9 +211,9 @@ mod test {
                  // compares full flattened text nodes
                  let levenstein_threshold = 900;
                  let mut text_result = String::new();
-                 extract_text(result.dom.document.clone(), &mut text_result);
+                 extract_text(result.rcdom.document.clone(), &mut text_result);
                  let mut text_expected = String::new();
-                 extract_text(expected.dom.document.clone(), &mut text_expected);
+                 extract_text(expected.rcdom.document.clone(), &mut text_expected);
 
                  let strings_approx = strings_match_approx(&text_result, &text_expected, levenstein_threshold);
                  assert!(strings_approx, "Flattened text is not similar enough");

@@ -13,55 +13,9 @@ use html5ever::rcdom::RcDom;
 use html5ever::tendril::*;
 use html5ever::tree_builder::{AppendText, ElementFlags, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, QualName};
-use std::io::Read;
 use url::Url;
 
-#[derive(Debug, PartialEq)]
-pub enum FeatureExtractorError {
-    InvalidUrl(String),
-    DocumentParseError(String),
-}
-
-impl From<url::ParseError> for FeatureExtractorError {
-    fn from(err: url::ParseError) -> Self {
-        FeatureExtractorError::InvalidUrl(err.to_string())
-    }
-}
-
-impl From<std::io::Error> for FeatureExtractorError {
-    fn from(err: std::io::Error) -> Self {
-        FeatureExtractorError::DocumentParseError(err.to_string())
-    }
-}
-
-// Feature extractor for full document
-pub struct FeatureExtractor {
-    pub dom: RcDom,
-    pub features: HashMap<String, u32>,
-}
-
-impl FeatureExtractor {
-    pub fn parse_document<R>(
-        doc: &mut R,
-        url: &Url,
-    ) -> Result<FeatureExtractor, FeatureExtractorError>
-    where
-        R: Read,
-    {
-        let dom_features =
-            html5ever::parse_document(FeaturisingTreeSink::default(), Default::default())
-                .from_utf8()
-                .read_from(doc)?;
-
-        let mut features = dom_features.features;
-        features.insert("url_depth".to_string(), url_depth(url).unwrap() as u32);
-
-        Ok(FeatureExtractor {
-            dom: dom_features.rcdom,
-            features,
-        })
-    }
-}
+use crate::speedreader::SpeedReaderError;
 
 // Feature extractor which accepts chunks of data to parse
 pub struct FeatureExtractorStreamer {
@@ -69,7 +23,7 @@ pub struct FeatureExtractorStreamer {
 }
 
 impl FeatureExtractorStreamer {
-    pub fn new(url: &Url) -> Result<FeatureExtractorStreamer, FeatureExtractorError> {
+    pub fn try_new(url: &Url) -> Result<Self, SpeedReaderError> {
         let mut sink = FeaturisingTreeSink::default();
         sink.features
             .insert("url_depth".to_string(), url_depth(url).unwrap() as u32);
@@ -85,7 +39,7 @@ impl FeatureExtractorStreamer {
         Ok(())
     }
 
-    pub fn finish(&mut self) -> &mut FeaturisingTreeSink {
+    pub fn end(&mut self) -> &mut FeaturisingTreeSink {
         &mut self.inner.tokenizer.sink.sink
     }
 
@@ -94,10 +48,10 @@ impl FeatureExtractorStreamer {
     }
 }
 
-fn url_depth(url: &Url) -> Result<usize, FeatureExtractorError> {
+fn url_depth(url: &Url) -> Result<usize, SpeedReaderError> {
     url.path_segments()
         .map(std::iter::Iterator::count) // want number of segments only
-        .ok_or_else(|| FeatureExtractorError::InvalidUrl(url.as_str().to_owned())) // return error
+        .ok_or_else(|| SpeedReaderError::InvalidUrl(url.as_str().to_owned())) // return error
 }
 
 pub struct FeaturisingTreeSink {
@@ -353,7 +307,7 @@ mod tests {
         );
         assert!(matches!(
             url_depth(&Url::parse("data:text/plain,HelloWorld").unwrap()),
-            Err(FeatureExtractorError::InvalidUrl(_))
+            Err(SpeedReaderError::InvalidUrl(_))
         ));
     }
 }

@@ -12,13 +12,13 @@ fn main() {
     let frag2 = fs::read_to_string("./examples/html/bbc_new1.html").expect("err to string");
     let frag3 = fs::read_to_string("./examples/html/bbc_new2.html").expect("err to string");
 
-    let mut streamer = FeatureExtractorStreamer::new(&url).unwrap();
+    let mut streamer = FeatureExtractorStreamer::try_new(&url).unwrap();
 
     streamer.write(&mut frag1.as_bytes()).unwrap();
     streamer.write(&mut frag2.as_bytes()).unwrap();
     streamer.write(&mut frag3.as_bytes()).unwrap();
 
-    let sink = streamer.finish();
+    let sink = streamer.end();
 
     println!("======\n Features returned sink:");
     let result = sink.features.clone();

@@ -1,6 +1,6 @@
 extern crate speedreader;
 
-use speedreader::classifier::feature_extractor::FeatureExtractor;
+use speedreader::classifier::feature_extractor::FeatureExtractorStreamer;
 use std::fs;
 use url::Url;
 
@@ -12,10 +12,11 @@ fn main() {
 
     let data = fs::read_to_string(doc_path).expect("err to string");
 
-    let extractor = FeatureExtractor::parse_document(&mut data.as_bytes(), &url).unwrap();
-    let result = extractor.features;
+    let mut feature_extractor = FeatureExtractorStreamer::try_new(&url).unwrap();
+    feature_extractor.write(&mut data.as_bytes()).unwrap();
+    let result = feature_extractor.end();
 
-    for (k, v) in result.iter() {
+    for (k, v) in result.features.iter() {
         println!("{}: {}", k, v);
     }
 }
