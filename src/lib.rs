@@ -10,4 +10,4 @@ extern crate matches;
 
 pub mod classifier;
 pub mod speedreader;
-pub mod speedreader_streamer;
+pub mod streaming;
