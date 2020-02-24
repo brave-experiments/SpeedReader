@@ -1,4 +1,3 @@
-use super::whitelist::*;
 use lol_html::html_content::*;
 use lol_html::ElementContentHandlers;
 use lol_html::Selector;
@@ -7,6 +6,35 @@ use std::error::Error;
 pub type HandlerResult = Result<(), Box<dyn Error>>;
 pub type ElementHandler = Box<dyn Fn(&mut Element) -> HandlerResult>;
 pub type TextHandler = Box<dyn Fn(&mut TextChunk) -> HandlerResult>;
+
+
+#[derive(Clone, Debug)]
+pub struct AttributeRewrite {
+    pub selector: String,
+    pub attribute: String,
+    pub to_attribute: String,
+    pub element_name: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct SiteConfiguration {
+    pub domain: String,
+    pub main_content: Vec<String>,
+    pub main_content_cleanup: Vec<String>,
+    pub delazify: bool,
+    pub fix_embeds: bool,
+    pub content_script: Option<String>,
+    pub preprocess: Vec<AttributeRewrite>,
+}
+
+impl SiteConfiguration {
+    pub fn get_main_content_selectors(&self) -> Vec<&str> {
+        self.main_content.iter().map(AsRef::as_ref).collect()
+    }
+    pub fn get_content_cleanup_selectors(&self) -> Vec<&str> {
+        self.main_content_cleanup.iter().map(AsRef::as_ref).collect()
+    }
+}
 
 pub struct ContentFunction {
     pub element: Option<ElementHandler>,
@@ -33,10 +61,6 @@ impl From<TextHandler> for ContentFunction {
     }
 }
 
-pub struct ExternOutputSink<'s> {
-    output: &'s Vec<u8>,
-}
-
 #[inline]
 pub fn get_content_handlers<'h>(function: &'h ContentFunction) -> ElementContentHandlers<'h> {
     if function.element.is_some() {
@@ -48,11 +72,11 @@ pub fn get_content_handlers<'h>(function: &'h ContentFunction) -> ElementContent
     }
 }
 
-pub struct SpeedReader {
+pub struct RewriterConfigBuilder {
     pub handlers: Vec<(Selector, ContentFunction)>,
 }
 
-impl SpeedReader {
+impl RewriterConfigBuilder {
     pub fn new(conf: &SiteConfiguration, origin: &str) -> Self {
         let mut element_content_handlers = vec![];
 
@@ -97,7 +121,7 @@ impl SpeedReader {
             )
         });
 
-        SpeedReader {
+        RewriterConfigBuilder {
             handlers: element_content_handlers,
         }
     }

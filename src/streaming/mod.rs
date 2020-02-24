@@ -1,2 +1,2 @@
-pub mod speedreader_streamer;
+pub mod rewriter_config_builder;
 pub mod whitelist;

@@ -1,32 +1,5 @@
 use std::collections::HashMap;
-
-#[derive(Clone, Debug)]
-pub struct AttributeRewrite {
-    pub selector: String,
-    pub attribute: String,
-    pub to_attribute: String,
-    pub element_name: String,
-}
-
-#[derive(Clone, Debug)]
-pub struct SiteConfiguration {
-    pub domain: String,
-    pub main_content: Vec<String>,
-    pub main_content_cleanup: Vec<String>,
-    pub delazify: bool,
-    pub fix_embeds: bool,
-    pub content_script: Option<String>,
-    pub preprocess: Vec<AttributeRewrite>,
-}
-
-impl SiteConfiguration {
-    pub fn get_main_content_selectors(&self) -> Vec<&str> {
-        self.main_content.iter().map(AsRef::as_ref).collect()
-    }
-    pub fn get_content_cleanup_selectors(&self) -> Vec<&str> {
-        self.main_content.iter().map(AsRef::as_ref).collect()
-    }
-}
+use super::rewriter_config_builder::{SiteConfiguration, AttributeRewrite};
 
 pub struct Whitelist {
     map: HashMap<String, SiteConfiguration>,
