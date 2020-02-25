@@ -3,40 +3,11 @@ use lol_html::ElementContentHandlers;
 use lol_html::Selector;
 use std::error::Error;
 
+use crate::speedreader::RewriteRules;
+
 pub type HandlerResult = Result<(), Box<dyn Error>>;
 pub type ElementHandler = Box<dyn Fn(&mut Element) -> HandlerResult>;
 pub type TextHandler = Box<dyn Fn(&mut TextChunk) -> HandlerResult>;
-
-#[derive(Clone, Debug)]
-pub struct AttributeRewrite {
-    pub selector: String,
-    pub attribute: String,
-    pub to_attribute: String,
-    pub element_name: String,
-}
-
-#[derive(Clone, Debug)]
-pub struct SiteConfiguration {
-    pub domain: String,
-    pub main_content: Vec<String>,
-    pub main_content_cleanup: Vec<String>,
-    pub delazify: bool,
-    pub fix_embeds: bool,
-    pub content_script: Option<String>,
-    pub preprocess: Vec<AttributeRewrite>,
-}
-
-impl SiteConfiguration {
-    pub fn get_main_content_selectors(&self) -> Vec<&str> {
-        self.main_content.iter().map(AsRef::as_ref).collect()
-    }
-    pub fn get_content_cleanup_selectors(&self) -> Vec<&str> {
-        self.main_content_cleanup
-            .iter()
-            .map(AsRef::as_ref)
-            .collect()
-    }
-}
 
 pub struct ContentFunction {
     pub element: Option<ElementHandler>,
@@ -64,7 +35,7 @@ impl From<TextHandler> for ContentFunction {
 }
 
 #[inline]
-pub fn get_content_handlers<'h>(function: &'h ContentFunction) -> ElementContentHandlers<'h> {
+fn get_content_handlers<'h>(function: &'h ContentFunction) -> ElementContentHandlers<'h> {
     if function.element.is_some() {
         ElementContentHandlers::default().element(function.element.as_ref().unwrap())
     } else if function.text.is_some() {
@@ -74,12 +45,18 @@ pub fn get_content_handlers<'h>(function: &'h ContentFunction) -> ElementContent
     }
 }
 
+// impl<'h> From<(&'h RewriteRules, String)> for RewriterConfigBuilder {
+//     fn from((rules, url): (&'h RewriteRules, String)) -> Self {
+//         RewriterConfigBuilder::new(rules, &url)
+//     }
+// }
+
 pub struct RewriterConfigBuilder {
     pub handlers: Vec<(Selector, ContentFunction)>,
 }
 
 impl RewriterConfigBuilder {
-    pub fn new(conf: &SiteConfiguration, origin: &str) -> Self {
+    pub fn new(conf: &RewriteRules, origin: &str) -> Self {
         let mut element_content_handlers = vec![];
 
         for attr_rewrite in &conf.preprocess {
@@ -127,8 +104,24 @@ impl RewriterConfigBuilder {
             handlers: element_content_handlers,
         }
     }
+
+    pub fn content_handlers<'h>(&'h self) -> Vec<(&Selector, ElementContentHandlers<'h>)> {
+        self.handlers
+            .iter()
+            .map(|(selector, function)| (selector, get_content_handlers(function)))
+            .collect::<Vec<_>>()
+    }
 }
 
+pub fn content_handlers<'h>(handlers: &'h Vec<(Selector, ContentFunction)>) -> Vec<(&Selector, ElementContentHandlers<'h>)> {
+    handlers
+        .iter()
+        .map(|(selector, function)| (selector, get_content_handlers(function)))
+        .collect::<Vec<_>>()
+}
+
+
+#[inline]
 fn add_element_function(
     handlers: &mut Vec<(Selector, ContentFunction)>,
     selector: &str,
@@ -140,6 +133,7 @@ fn add_element_function(
     ));
 }
 
+#[inline]
 fn add_text_function(
     handlers: &mut Vec<(Selector, ContentFunction)>,
     selector: &str,
@@ -151,6 +145,7 @@ fn add_text_function(
     ))
 }
 
+#[inline]
 fn collect_main_content(
     handlers: &mut Vec<(Selector, ContentFunction)>,
     content_selectors: &[&str],
@@ -183,6 +178,7 @@ fn collect_main_content(
     );
 }
 
+#[inline]
 fn correct_relative_links(handlers: &mut Vec<(Selector, ContentFunction)>, origin: String) {
     let href_origin = origin.clone();
     add_element_function(
@@ -214,6 +210,7 @@ fn correct_relative_links(handlers: &mut Vec<(Selector, ContentFunction)>, origi
     );
 }
 
+#[inline]
 fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
     add_element_function(
         handlers,
@@ -286,6 +283,7 @@ fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
     );
 }
 
+#[inline]
 fn fix_social_embeds(handlers: &mut Vec<(Selector, ContentFunction)>) {
     add_element_function(
         handlers,
@@ -302,12 +300,17 @@ fn fix_social_embeds(handlers: &mut Vec<(Selector, ContentFunction)>) {
     )
 }
 
+#[inline]
 fn mark_retained_element(el: &mut Element) -> HandlerResult {
     Ok(el.set_user_data(true))
 }
+
+#[inline]
 fn mark_retained_text(t: &mut TextChunk) -> HandlerResult {
     Ok(t.set_user_data(true))
 }
+
+#[inline]
 fn remove_unmarked_text(t: &mut TextChunk) -> HandlerResult {
     let user_data = t.user_data_mut().downcast_ref::<bool>();
     if user_data != Some(&true) {
@@ -316,6 +319,8 @@ fn remove_unmarked_text(t: &mut TextChunk) -> HandlerResult {
         Ok(())
     }
 }
+
+#[inline]
 fn unwrap_unmarked_element(el: &mut Element) -> HandlerResult {
     let user_data = el.user_data_mut().downcast_ref::<bool>();
     if user_data != Some(&true) {

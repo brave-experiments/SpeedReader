@@ -8,6 +8,9 @@ extern crate lol_html;
 #[macro_use]
 extern crate matches;
 
+mod speedreader_heuristics;
+pub mod speedreader_streaming;
 pub mod classifier;
 pub mod speedreader;
 pub mod streaming;
+pub mod whitelist;

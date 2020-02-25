@@ -15,23 +15,7 @@ use html5ever::tree_builder::{AppendText, ElementFlags, NodeOrText, QuirksMode, 
 use html5ever::{Attribute, ExpandedName, QualName};
 use url::Url;
 
-#[derive(Debug, PartialEq)]
-pub enum FeatureExtractorError {
-    InvalidUrl(String),
-    DocumentParseError(String),
-}
-
-impl From<url::ParseError> for FeatureExtractorError {
-    fn from(err: url::ParseError) -> Self {
-        FeatureExtractorError::InvalidUrl(err.to_string())
-    }
-}
-
-impl From<std::io::Error> for FeatureExtractorError {
-    fn from(err: std::io::Error) -> Self {
-        FeatureExtractorError::DocumentParseError(err.to_string())
-    }
-}
+use crate::speedreader::SpeedReaderError;
 
 // Feature extractor which accepts chunks of data to parse
 pub struct FeatureExtractorStreamer {
@@ -39,7 +23,7 @@ pub struct FeatureExtractorStreamer {
 }
 
 impl FeatureExtractorStreamer {
-    pub fn try_new(url: &Url) -> Result<Self, FeatureExtractorError> {
+    pub fn try_new(url: &Url) -> Result<Self, SpeedReaderError> {
         let mut sink = FeaturisingTreeSink::default();
         sink.features
             .insert("url_depth".to_string(), url_depth(url).unwrap() as u32);
@@ -64,10 +48,10 @@ impl FeatureExtractorStreamer {
     }
 }
 
-fn url_depth(url: &Url) -> Result<usize, FeatureExtractorError> {
+fn url_depth(url: &Url) -> Result<usize, SpeedReaderError> {
     url.path_segments()
         .map(std::iter::Iterator::count) // want number of segments only
-        .ok_or_else(|| FeatureExtractorError::InvalidUrl(url.as_str().to_owned())) // return error
+        .ok_or_else(|| SpeedReaderError::InvalidUrl(url.as_str().to_owned())) // return error
 }
 
 pub struct FeaturisingTreeSink {
@@ -323,7 +307,7 @@ mod tests {
         );
         assert!(matches!(
             url_depth(&Url::parse("data:text/plain,HelloWorld").unwrap()),
-            Err(FeatureExtractorError::InvalidUrl(_))
+            Err(SpeedReaderError::InvalidUrl(_))
         ));
     }
 }
