@@ -1,16 +1,109 @@
 use readability;
 use std::borrow::Borrow;
 use std::cell::RefCell;
-use std::io::Read;
 use url::Url;
 
 use crate::classifier;
 use classifier::feature_extractor::{FeatureExtractorStreamer, FeaturisingTreeSink};
+use classifier::feature_extractor::FeatureExtractorError;
+
+/// Defines an interface for the [`HtmlRewriter`]'s output.
+///
+/// Implemented for [`Fn`] and [`FnMut`].
+///
+/// [`HtmlRewriter`]: struct.HtmlRewriter.html
+/// [`Fn`]: https://doc.rust-lang.org/std/ops/trait.Fn.html
+/// [`FnMut`]: https://doc.rust-lang.org/std/ops/trait.FnMut.html
+pub trait OutputSink {
+    /// Handles rewriter's output chunk.
+    ///
+    /// # Note
+    /// The last chunk of the output has zero length.
+    fn handle_chunk(&mut self, chunk: &[u8]);
+}
+
+impl<F: FnMut(&[u8])> OutputSink for F {
+    fn handle_chunk(&mut self, chunk: &[u8]) {
+        self(chunk);
+    }
+}
+
+pub struct SpeedReader<O>
+where
+    O: OutputSink
+{
+    url: Option<Url>,
+    readable: RefCell<Option<bool>>,
+    streamer: FeatureExtractorStreamer,
+    output_sink: O,
+}
+
+impl<O: OutputSink> SpeedReader<O> {
+    pub fn try_new(url: &str, output_sink: O) -> Result<Self, FeatureExtractorError> {
+        let url_parsed = Url::parse(url);
+
+        url_parsed
+            .map(|url_parsed| {
+                if url_maybe_readable(&url_parsed) {
+                    let streamer = FeatureExtractorStreamer::try_new(&url_parsed)?;
+                    Ok(SpeedReader {
+                        url: Some(url_parsed),
+                        readable: RefCell::new(None),
+                        streamer,
+                        output_sink
+                    })
+                } else {
+                    Err(FeatureExtractorError::InvalidUrl(url.to_owned()))
+                }
+            })?
+    }
+
+    pub fn write(&mut self, input: &[u8]) {
+        if self.document_readable() != Some(false) {
+            match self.streamer.write(&mut input.borrow()) {
+                Err(_) => *self.readable.borrow_mut() = Some(false),
+                _ => (),
+            }
+        }
+        // else NOOP - already decided the doc is not readable
+    }
+
+    pub fn document_readable(&self) -> Option<bool> {
+        *self.readable.borrow()
+    }
+
+    pub fn end(&mut self) -> Result<(), FeatureExtractorError> {
+        // No valid URL - no document
+        if self.url.is_none() {
+            return Err(FeatureExtractorError::InvalidUrl("".to_owned()));
+        }
+        // Already decided the document is not readable
+        if self.document_readable() == Some(false) {
+            return Err(FeatureExtractorError::DocumentParseError("Not readable".to_owned()));
+        }
+        let url = self.url.as_ref().unwrap();
+        let processed = process(self.streamer.end(), url);
+
+        *self.readable.borrow_mut() = Some(processed.readable);
+        if processed.readable {
+            if let Some(doc) = processed.doc {
+                self.output_sink.handle_chunk(doc.as_bytes());
+                Ok(())
+            } else {
+                Err(FeatureExtractorError::DocumentParseError("Not readable".to_owned()))
+            }
+            
+        } else {
+            Err(FeatureExtractorError::DocumentParseError("Not readable".to_owned()))
+        }
+    }
+}
 
 struct SpeedReaderDoc {
     pub readable: bool,
     pub doc: Option<String>,
 }
+
 
 fn process(sink: &mut FeaturisingTreeSink, url: &Url) -> SpeedReaderDoc {
     let class = classifier::Classifier::from_feature_map(&sink.features).classify();
@@ -29,119 +122,9 @@ fn process(sink: &mut FeaturisingTreeSink, url: &Url) -> SpeedReaderDoc {
     }
 }
 
-fn process_full_document<R>(input: &mut R, url: &Url) -> SpeedReaderDoc
-where
-    R: Read,
-{
-    let maybe_featurised =
-        classifier::feature_extractor::FeatureExtractor::parse_document(input, url);
-    if maybe_featurised.is_err() {
-        eprintln!(
-            "Error while processing document: {:?}",
-            maybe_featurised.err()
-        );
-        return SpeedReaderDoc {
-            readable: false,
-            doc: None,
-        };
-    }
-
-    let mut featurised = maybe_featurised.unwrap();
-
-    let class = classifier::Classifier::from_feature_map(&featurised.features).classify();
-
-    if class == 0 {
-        SpeedReaderDoc {
-            readable: false,
-            doc: None,
-        }
-    } else {
-        let extracted =
-            readability::extractor::extract_dom(&mut featurised.dom, url, &featurised.features)
-                .unwrap();
-        SpeedReaderDoc {
-            readable: true,
-            doc: Some(extracted.content),
-        }
-    }
-}
-
 fn url_maybe_readable(url: &Url) -> bool {
     let scheme = url.scheme();
     scheme == "http" || scheme == "https"
-}
-
-const DOC_CAPACITY_INCREMENTS: usize = 65536;
-
-pub struct SpeedReader {
-    url: Option<Url>,
-    readable: RefCell<Option<bool>>,
-    streamer: Option<FeatureExtractorStreamer>,
-}
-
-impl SpeedReader {
-    pub fn new(url: &str) -> SpeedReader {
-        let url_parsed = Url::parse(url);
-
-        url_parsed
-            .map(|url| {
-                if url_maybe_readable(&url) {
-                    let streamer = FeatureExtractorStreamer::new(&url).ok();
-                    SpeedReader {
-                        url: Some(url),
-                        readable: RefCell::new(None),
-                        streamer,
-                    }
-                } else {
-                    SpeedReader {
-                        url: None,
-                        readable: RefCell::new(Some(false)),
-                        streamer: None,
-                    }
-                }
-            })
-            .unwrap_or_else(|_e| SpeedReader {
-                url: None,
-                readable: RefCell::new(Some(false)),
-                streamer: None,
-            })
-    }
-
-    pub fn with_chunk(&mut self, input: &[u8]) {
-        if self.document_readable() != Some(false) && self.streamer.is_some() {
-            let streamer = self.streamer.as_mut().unwrap();
-            match streamer.write(&mut input.borrow()) {
-                Err(_) => *self.readable.borrow_mut() = Some(false),
-                _ => (),
-            }
-        }
-        // else NOOP - already decided the doc is not readable
-    }
-
-    pub fn document_readable(&self) -> Option<bool> {
-        *self.readable.borrow()
-    }
-
-    pub fn finalize(&mut self) -> Option<String> {
-        // No valid URL - no document
-        if self.url.is_none() || self.streamer.is_none() {
-            return None;
-        }
-        // Already decided the document is not readable
-        if self.document_readable() == Some(false) {
-            return None;
-        }
-        let url = self.url.as_ref().unwrap();
-        let streamer = self.streamer.as_mut().unwrap();
-        let processed = process(streamer.finish(), url);
-
-        *self.readable.borrow_mut() = Some(processed.readable);
-        if processed.readable {
-            processed.doc
-        } else {
-            None
-        }
-    }
 }
 
 #[cfg(test)]
@@ -150,16 +133,23 @@ mod tests {
 
     #[test]
     fn test_speedreader_streamer() {
-        let mut sreader = SpeedReader::new("https://test.xyz");
+        let mut buf = vec![];
+        let mut sreader = SpeedReader::try_new(
+            "https://test.xyz",
+            |c: &[u8]| {
+                buf.extend_from_slice(c)
+            }
+        ).unwrap();
 
-        let mut buff1 = "<html><p>hello".as_bytes();
-        let mut buff2 = "world </p>\n\n\n\n<br><br><a href='/link'>".as_bytes();
-        let mut buff3 = "this is a link</a></html>".as_bytes();
+        let buff1 = "<html><p>hello".as_bytes();
+        let buff2 = "world </p>\n\n\n\n<br><br><a href='/link'>".as_bytes();
+        let buff3 = "this is a link</a></html>".as_bytes();
 
-        sreader.with_chunk(&mut buff1);
-        sreader.with_chunk(&mut buff2);
-        sreader.with_chunk(&mut buff3);
-        let result_sink = sreader.streamer.as_mut().unwrap().finish();
+        sreader.write(&buff1);
+        sreader.write(&buff2);
+        sreader.write(&buff3);
+        sreader.end().ok();
+        let result_sink = sreader.streamer.end();
 
         assert_eq!(result_sink.features["url_depth"], 1);
         assert_eq!(result_sink.features["p"], 1);

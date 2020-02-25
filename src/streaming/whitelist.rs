@@ -37,7 +37,7 @@ impl Whitelist {
                 ".video".to_owned(),
                 ".svg-symbol".to_owned(),
             ],
-            delazify: true,
+            delazify: false,
             fix_embeds: true,
             content_script: None,
             preprocess: vec![],

@@ -13,7 +13,6 @@ use html5ever::rcdom::RcDom;
 use html5ever::tendril::*;
 use html5ever::tree_builder::{AppendText, ElementFlags, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, QualName};
-use std::io::Read;
 use url::Url;
 
 #[derive(Debug, PartialEq)]
@@ -34,42 +33,13 @@ impl From<std::io::Error> for FeatureExtractorError {
     }
 }
 
-// Feature extractor for full document
-pub struct FeatureExtractor {
-    pub dom: RcDom,
-    pub features: HashMap<String, u32>,
-}
-
-impl FeatureExtractor {
-    pub fn parse_document<R>(
-        doc: &mut R,
-        url: &Url,
-    ) -> Result<FeatureExtractor, FeatureExtractorError>
-    where
-        R: Read,
-    {
-        let dom_features =
-            html5ever::parse_document(FeaturisingTreeSink::default(), Default::default())
-                .from_utf8()
-                .read_from(doc)?;
-
-        let mut features = dom_features.features;
-        features.insert("url_depth".to_string(), url_depth(url).unwrap() as u32);
-
-        Ok(FeatureExtractor {
-            dom: dom_features.rcdom,
-            features,
-        })
-    }
-}
-
 // Feature extractor which accepts chunks of data to parse
 pub struct FeatureExtractorStreamer {
     inner: Parser<FeaturisingTreeSink>,
 }
 
 impl FeatureExtractorStreamer {
-    pub fn new(url: &Url) -> Result<FeatureExtractorStreamer, FeatureExtractorError> {
+    pub fn try_new(url: &Url) -> Result<Self, FeatureExtractorError> {
         let mut sink = FeaturisingTreeSink::default();
         sink.features
             .insert("url_depth".to_string(), url_depth(url).unwrap() as u32);
@@ -85,7 +55,7 @@ impl FeatureExtractorStreamer {
         Ok(())
     }
 
-    pub fn finish(&mut self) -> &mut FeaturisingTreeSink {
+    pub fn end(&mut self) -> &mut FeaturisingTreeSink {
         &mut self.inner.tokenizer.sink.sink
     }
 

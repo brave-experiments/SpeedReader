@@ -2,7 +2,7 @@ extern crate url;
 extern crate speedreader;
 extern crate reqwest;
 
-use speedreader::classifier::feature_extractor::FeatureExtractor;
+use speedreader::classifier::feature_extractor::FeatureExtractorStreamer;
 use readability::extractor::extract_dom;
 use speedreader::classifier::Classifier;
 use url::Url;
@@ -42,16 +42,18 @@ fn main() {
     file.write_all(data.as_bytes()).unwrap();
 
     // feature extraction
-    let mut extractor = FeatureExtractor::parse_document(&mut data.as_bytes(), &url).unwrap();
+    let mut feature_extractor = FeatureExtractorStreamer::try_new(&url).unwrap();
+    feature_extractor.write(&mut data.as_bytes()).unwrap();
+    let result = feature_extractor.end();
     
     // document classification
-    let classifier_result = Classifier::from_feature_map(&extractor.features)
+    let classifier_result = Classifier::from_feature_map(&result.features)
         .classify();
     println!(">> Readble?\n {}", classifier_result);
 
     if classifier_result > 0 {
         // document mapper
-        let product = extract_dom(&mut extractor.dom, &url, &extractor.features).unwrap();
+        let product = extract_dom(&mut result.rcdom, &url, &result.features).unwrap();
         let filename_html = format!("{}/mapped.html", &dir);
         let mut file = fs::File::create(filename_html).unwrap();
         file.write_all(product.content.as_bytes()).unwrap();

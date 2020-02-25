@@ -7,7 +7,6 @@ pub type HandlerResult = Result<(), Box<dyn Error>>;
 pub type ElementHandler = Box<dyn Fn(&mut Element) -> HandlerResult>;
 pub type TextHandler = Box<dyn Fn(&mut TextChunk) -> HandlerResult>;
 
-
 #[derive(Clone, Debug)]
 pub struct AttributeRewrite {
     pub selector: String,
@@ -32,7 +31,10 @@ impl SiteConfiguration {
         self.main_content.iter().map(AsRef::as_ref).collect()
     }
     pub fn get_content_cleanup_selectors(&self) -> Vec<&str> {
-        self.main_content_cleanup.iter().map(AsRef::as_ref).collect()
+        self.main_content_cleanup
+            .iter()
+            .map(AsRef::as_ref)
+            .collect()
     }
 }
 
@@ -157,22 +159,12 @@ fn collect_main_content(
     content_selectors.iter().for_each(|selector| {
         add_element_function(
             handlers,
-            &format!("{}", selector),
+            &format!("{}, {} *", selector, selector),
             Box::new(mark_retained_element),
         );
         add_text_function(
             handlers,
-            &format!("{}", selector),
-            Box::new(mark_retained_text),
-        );
-        add_element_function(
-            handlers,
-            &format!("{} *", selector),
-            Box::new(mark_retained_element),
-        );
-        add_text_function(
-            handlers,
-            &format!("{} *", selector),
+            &format!("{}, {} *", selector, selector),
             Box::new(mark_retained_text),
         );
     });
@@ -299,9 +291,12 @@ fn fix_social_embeds(handlers: &mut Vec<(Selector, ContentFunction)>) {
         handlers,
         ".twitterContainer",
         Box::new(|el: &mut Element| {
-            el.prepend(r#"
+            el.prepend(
+                r#"
             <script type="text/javascript" src="//platform.twitter.com/widgets.js" async="">
-            </script>"#, ContentType::Html);
+            </script>"#,
+                ContentType::Html,
+            );
             Ok(())
         }),
     )

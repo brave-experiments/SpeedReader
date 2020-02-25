@@ -1,4 +1,4 @@
-use speedreader::classifier::feature_extractor::FeatureExtractor;
+use speedreader::classifier::feature_extractor::FeatureExtractorStreamer;
 use speedreader::classifier::Classifier;
 use std::fs;
 use url::Url;
@@ -12,9 +12,10 @@ fn main() {
 
     let data = fs::read_to_string(doc_path).expect("err to string");
 
-    let extractor = FeatureExtractor::parse_document(&mut data.as_bytes(), &url).unwrap();
-    let features = extractor.features;
+    let mut feature_extractor = FeatureExtractorStreamer::try_new(&url).unwrap();
+    feature_extractor.write(&mut data.as_bytes()).unwrap();
+    let result = feature_extractor.end();
 
-    let result = Classifier::from_feature_map(&features).classify();
+    let result = Classifier::from_feature_map(&result.features).classify();
     println!("{}", result);
 }

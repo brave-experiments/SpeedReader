@@ -1,7 +1,7 @@
 extern crate url;
 extern crate speedreader;
 
-use speedreader::classifier::feature_extractor::FeatureExtractor;
+use speedreader::classifier::feature_extractor::FeatureExtractorStreamer;
 use readability::extractor::extract_dom;
 use speedreader::classifier::Classifier;
 use url::Url;
@@ -12,19 +12,21 @@ fn main() {
     let data = fs::read_to_string("./examples/html/bbc_1.html").expect("err to string");
 
     // feature extraction
-    let mut extractor = FeatureExtractor::parse_document(&mut data.as_bytes(), &url).unwrap();
+    let mut feature_extractor = FeatureExtractorStreamer::try_new(&url).unwrap();
+    feature_extractor.write(&mut data.as_bytes()).unwrap();
+    let result = feature_extractor.end();
 
     println!(">> Feature List");
-    for (k, v) in extractor.features.to_owned().iter() {
+    for (k, v) in result.features.to_owned().iter() {
         println!("{}: {}", k, v);
     }
     
     // document classification
-    let classifier_result = Classifier::from_feature_map(&extractor.features)
+    let classifier_result = Classifier::from_feature_map(&result.features)
         .classify();
     println!(">> Readble?\n {}", classifier_result);
 
     // document mapper
-    let product = extract_dom(&mut extractor.dom, &url, &extractor.features).unwrap();
+    let product = extract_dom(&mut result.rcdom, &url, &result.features).unwrap();
     println!(">> Read mode:\n {}", product.content);
 }
