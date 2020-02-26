@@ -16,6 +16,7 @@ members = [
 html5ever = "0.23.0"
 regex = "1"
 lol_html = "0.1.0"
+thiserror = "1.0.2"
 
 # Pin versions compatible with rustc 1.35.0
 url = "=1.7.2"

@@ -1,14 +1,22 @@
+use lol_html::OutputSink;
+use lol_html::Selector;
 use url::Url;
-pub use super::whitelist::Whitelist;
-pub use super::streaming::rewriter_config_builder::{RewriterConfigBuilder, content_handlers};
-use super::speedreader_streaming::SpeedReaderStreaming;
-use super::speedreader_heuristics::SpeedReaderHeuristics;
+use thiserror::Error;
+use std::any::Any;
 
-#[derive(Debug, PartialEq)]
+use super::speedreader_heuristics::SpeedReaderHeuristics;
+use super::speedreader_streaming::SpeedReaderStreaming;
+use super::rewriter_config_builder::*;
+use super::whitelist::Whitelist;
+
+#[derive(Error, Debug, PartialEq)]
 pub enum SpeedReaderError {
+    #[error("Invalid article URL.")]
     InvalidUrl(String),
+    #[error("Document parsing error: `{0}`")]
     DocumentParseError(String),
-    RewritingError(String)
+    #[error("Document rewriting error: `{0}`")]
+    RewritingError(String),
 }
 
 impl From<lol_html::errors::RewritingError> for SpeedReaderError {
@@ -44,7 +52,7 @@ pub trait SpeedReaderProcessor {
 pub struct SpeedReaderConfig {
     pub domain: String,
     pub url_rules: Vec<String>,
-    pub declarative_rewrite: Option<RewriteRules>
+    pub declarative_rewrite: Option<RewriteRules>,
 }
 
 #[derive(Clone, Debug)]
@@ -66,6 +74,12 @@ pub struct RewriteRules {
 }
 
 impl RewriteRules {
+    pub fn get_content_handlers(&self, url: &Url) -> Vec<(Selector, ContentFunction)> {
+        rewrite_rules_to_content_handlers(self, &url.origin().ascii_serialization())
+    }
+}
+
+impl RewriteRules {
     pub fn get_main_content_selectors(&self) -> Vec<&str> {
         self.main_content.iter().map(AsRef::as_ref).collect()
     }
@@ -77,44 +91,60 @@ impl RewriteRules {
     }
 }
 
-pub fn blocking_content_rewrite(article_url: &str, content: &[u8]) -> Result<Vec<u8>, SpeedReaderError> {
-    let url = Url::parse(article_url).unwrap();
+pub struct SpeedReader {
+    whitelist: Whitelist,
+}
 
-    let mut whitelist = Whitelist::default();
-    whitelist.load_predefined();
-    let maybe_config = whitelist.get_configuration(&url.domain().unwrap_or_default().replace("www.", ""));
+impl SpeedReader {
+    pub fn new() -> Self {
+        let mut whitelist = Whitelist::default();
+        whitelist.load_predefined();
+        SpeedReader { whitelist }
+    }
 
-    let mut buf = vec![];
-    match maybe_config {
-        Some(SpeedReaderConfig {domain: _, url_rules: _, declarative_rewrite: Some(rewrite)}) => {
-            let r_config = RewriterConfigBuilder::new(
-                rewrite,
-                &url.origin().ascii_serialization(),
-            );
-    
-            let mut rewriter = SpeedReaderStreaming::try_new(
-                url,
-                |c: &[u8]| {
-                    buf.extend_from_slice(c);
-                },
-                &r_config
-            )?;
-    
-            rewriter.write(content)?;
-            rewriter.end()?;
-        },
-        _ => {
-            let mut rewriter = SpeedReaderHeuristics::try_new(
-                url.as_str(),
-                |c: &[u8]| {
-                    buf.extend_from_slice(c)
+    pub fn with_whitelist(whitelist: Whitelist) -> Self {
+        SpeedReader { whitelist }
+    }
+
+    pub fn find_config(
+        &self,
+        article_url: &str,
+    ) -> (Option<&SpeedReaderConfig>, Box<dyn Any>) {
+        let url = Url::parse(article_url).unwrap();
+        let config = self
+            .whitelist
+            .get_configuration(&url.domain().unwrap_or_default().replace("www.", ""));
+
+        let content_handlers;
+        match config {
+            Some(SpeedReaderConfig {
+                domain: _,
+                url_rules: _,
+                declarative_rewrite: Some(rewrite),
+            }) => content_handlers = rewrite.get_content_handlers(&url),
+            _ => content_handlers = vec![],
+        }
+
+        (config, Box::new(content_handlers))
+    }
+
+    pub fn get_rewriter<'h, O: OutputSink + 'h>(
+        &'h self,
+        article_url: &str,
+        config: Option<&SpeedReaderConfig>,
+        extra: &'h Box<dyn Any>,
+        output_sink: O
+    ) -> Result<Box<dyn SpeedReaderProcessor + 'h>, SpeedReaderError> {
+        let url = Url::parse(article_url).unwrap();
+        // let extra = extra as &dyn Any;
+        match extra.downcast_ref::<Vec<(Selector, ContentFunction)>>() {
+            Some(content_handlers) => {
+                match config {
+                    Some(_) => Ok(Box::new(SpeedReaderStreaming::try_new(url, output_sink, content_handlers)?)),
+                    _ => Ok(Box::new(SpeedReaderHeuristics::try_new(url.as_str(), output_sink)?))
                 }
-            )?;
-    
-            rewriter.write(content)?;
-            rewriter.end()?;
+            }
+            _ => Err(SpeedReaderError::RewritingError("Bad Configuration".to_owned()))
         }
     }
-    
-    Ok(buf)
 }

@@ -34,6 +34,60 @@ impl From<TextHandler> for ContentFunction {
     }
 }
 
+pub fn rewrite_rules_to_content_handlers(conf: &RewriteRules, origin: &str) -> Vec<(Selector, ContentFunction)> {
+    let mut element_content_handlers = vec![];
+
+    for attr_rewrite in &conf.preprocess {
+        let rewrite = attr_rewrite.clone();
+        add_element_function(
+            &mut element_content_handlers,
+            &attr_rewrite.selector,
+            Box::new(move |el| {
+                el.get_attribute(&rewrite.attribute).map(|attr_value| {
+                    el.set_attribute(&rewrite.to_attribute, &attr_value)
+                        .unwrap_or(());
+                });
+                el.set_tag_name(&rewrite.element_name)?;
+                Ok(())
+            }),
+        );
+    }
+
+    collect_main_content(
+        &mut element_content_handlers,
+        &conf.get_main_content_selectors(),
+        &conf.get_content_cleanup_selectors(),
+    );
+    if conf.delazify {
+        delazify(&mut element_content_handlers);
+    }
+    if conf.fix_embeds {
+        fix_social_embeds(&mut element_content_handlers);
+    }
+    correct_relative_links(&mut element_content_handlers, origin.to_owned());
+
+    let maybe_script = conf.content_script.clone();
+    maybe_script.map(|script| {
+        add_element_function(
+            &mut element_content_handlers,
+            "body",
+            Box::new(move |el| {
+                el.append(&script, ContentType::Html);
+                Ok(())
+            }),
+        )
+    });
+
+    element_content_handlers
+}
+
+pub fn content_handlers<'h>(handlers: &'h Vec<(Selector, ContentFunction)>) -> Vec<(&Selector, ElementContentHandlers<'h>)> {
+    handlers
+        .iter()
+        .map(|(selector, function)| (selector, get_content_handlers(function)))
+        .collect::<Vec<_>>()
+}
+
 #[inline]
 fn get_content_handlers<'h>(function: &'h ContentFunction) -> ElementContentHandlers<'h> {
     if function.element.is_some() {
@@ -44,82 +98,6 @@ fn get_content_handlers<'h>(function: &'h ContentFunction) -> ElementContentHand
         ElementContentHandlers::default()
     }
 }
-
-// impl<'h> From<(&'h RewriteRules, String)> for RewriterConfigBuilder {
-//     fn from((rules, url): (&'h RewriteRules, String)) -> Self {
-//         RewriterConfigBuilder::new(rules, &url)
-//     }
-// }
-
-pub struct RewriterConfigBuilder {
-    pub handlers: Vec<(Selector, ContentFunction)>,
-}
-
-impl RewriterConfigBuilder {
-    pub fn new(conf: &RewriteRules, origin: &str) -> Self {
-        let mut element_content_handlers = vec![];
-
-        for attr_rewrite in &conf.preprocess {
-            let rewrite = attr_rewrite.clone();
-            add_element_function(
-                &mut element_content_handlers,
-                &attr_rewrite.selector,
-                Box::new(move |el| {
-                    el.get_attribute(&rewrite.attribute).map(|attr_value| {
-                        el.set_attribute(&rewrite.to_attribute, &attr_value)
-                            .unwrap_or(());
-                    });
-                    el.set_tag_name(&rewrite.element_name)?;
-                    Ok(())
-                }),
-            );
-        }
-
-        collect_main_content(
-            &mut element_content_handlers,
-            &conf.get_main_content_selectors(),
-            &conf.get_content_cleanup_selectors(),
-        );
-        if conf.delazify {
-            delazify(&mut element_content_handlers);
-        }
-        if conf.fix_embeds {
-            fix_social_embeds(&mut element_content_handlers);
-        }
-        correct_relative_links(&mut element_content_handlers, origin.to_owned());
-
-        let maybe_script = conf.content_script.clone();
-        maybe_script.map(|script| {
-            add_element_function(
-                &mut element_content_handlers,
-                "body",
-                Box::new(move |el| {
-                    el.append(&script, ContentType::Html);
-                    Ok(())
-                }),
-            )
-        });
-
-        RewriterConfigBuilder {
-            handlers: element_content_handlers,
-        }
-    }
-
-    pub fn content_handlers<'h>(&'h self) -> Vec<(&Selector, ElementContentHandlers<'h>)> {
-        self.handlers
-            .iter()
-            .map(|(selector, function)| (selector, get_content_handlers(function)))
-            .collect::<Vec<_>>()
-    }
-}
-
-pub fn content_handlers<'h>(handlers: &'h Vec<(Selector, ContentFunction)>) -> Vec<(&Selector, ElementContentHandlers<'h>)> {
-    handlers
-        .iter()
-        .map(|(selector, function)| (selector, get_content_handlers(function)))
-        .collect::<Vec<_>>()
-}
-
 
 #[inline]
 fn add_element_function(

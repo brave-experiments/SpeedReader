@@ -4,16 +4,13 @@ extern crate url;
 
 use std::collections::hash_map::DefaultHasher;
 use std::env;
+use std::error::Error;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::io::prelude::*;
-use std::error::Error;
 use url::Url;
 
-use speedreader::speedreader_streaming::SpeedReaderStreaming;
-use speedreader::speedreader::Whitelist;
-use speedreader::speedreader::RewriterConfigBuilder;
-use speedreader::speedreader::SpeedReaderProcessor;
+use speedreader::*;
 
 fn calculate_hash<T: Hash>(t: &T) -> u64 {
     let mut s = DefaultHasher::new();
@@ -42,28 +39,17 @@ async fn stream_content(article_url: &str) -> Result<(), Box<dyn Error>> {
         .send()
         .await?;
 
-    let mut whitelist = Whitelist::default();
-    whitelist.load_predefined();
-    
-    let r_config = RewriterConfigBuilder::new(
-        &whitelist.get_configuration(&url.domain().unwrap_or_default().replace("www.", ""))
-            .unwrap()
-            .declarative_rewrite.as_ref()
-            .unwrap(),
-        &url.origin().ascii_serialization(),
-    );
-
     let mut mapped_file = fs::File::create(format!("{}/mapped.html", &dir))?;
-    let mut mapped_test_file = fs::File::create(format!("{}/mapped.html", "data/lolhtml/dump/test"))?;
+    let mut mapped_test_file =
+        fs::File::create(format!("{}/mapped.html", "data/lolhtml/dump/test"))?;
 
-    let mut rewriter = SpeedReaderStreaming::try_new(
-        url,
-        |c: &[u8]| {
+    let sr = SpeedReader::new();
+    let (config, user_data) = sr.find_config(article_url);
+    let mut rewriter = sr
+        .get_rewriter(article_url, config, &user_data, |c: &[u8]| {
             mapped_file.write_all(c).ok();
             mapped_test_file.write_all(c).ok();
-        },
-        &r_config
-    ).unwrap();
+        })?;
 
     let mut init_file = fs::File::create(format!("{}/init.html", &dir))?;
     let mut init_test_file = fs::File::create(format!("{}/init.html", "data/lolhtml/dump/test"))?;
@@ -73,7 +59,7 @@ async fn stream_content(article_url: &str) -> Result<(), Box<dyn Error>> {
         init_test_file.write_all(chunk.as_ref()).ok();
     }
 
-    rewriter.end().ok();
+    rewriter.end()?;
 
     Ok(())
 }
