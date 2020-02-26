@@ -3,6 +3,7 @@
 extern crate html5ever;
 extern crate lol_html;
 extern crate url;
+extern crate adblock;
 
 #[cfg(test)]
 #[macro_use]

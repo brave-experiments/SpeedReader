@@ -34,7 +34,10 @@ impl From<TextHandler> for ContentFunction {
     }
 }
 
-pub fn rewrite_rules_to_content_handlers(conf: &RewriteRules, origin: &str) -> Vec<(Selector, ContentFunction)> {
+pub fn rewrite_rules_to_content_handlers(
+    conf: &RewriteRules,
+    origin: &str,
+) -> Vec<(Selector, ContentFunction)> {
     let mut element_content_handlers = vec![];
 
     for attr_rewrite in &conf.preprocess {
@@ -81,7 +84,9 @@ pub fn rewrite_rules_to_content_handlers(conf: &RewriteRules, origin: &str) -> V
     element_content_handlers
 }
 
-pub fn content_handlers<'h>(handlers: &'h Vec<(Selector, ContentFunction)>) -> Vec<(&Selector, ElementContentHandlers<'h>)> {
+pub fn content_handlers<'h>(
+    handlers: &'h Vec<(Selector, ContentFunction)>,
+) -> Vec<(&Selector, ElementContentHandlers<'h>)> {
     handlers
         .iter()
         .map(|(selector, function)| (selector, get_content_handlers(function)))

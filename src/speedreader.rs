@@ -1,12 +1,12 @@
 use lol_html::OutputSink;
 use lol_html::Selector;
-use url::Url;
-use thiserror::Error;
 use std::any::Any;
+use thiserror::Error;
+use url::Url;
 
+use super::rewriter_config_builder::*;
 use super::speedreader_heuristics::SpeedReaderHeuristics;
 use super::speedreader_streaming::SpeedReaderStreaming;
-use super::rewriter_config_builder::*;
 use super::whitelist::Whitelist;
 
 #[derive(Error, Debug, PartialEq)]
@@ -17,6 +17,8 @@ pub enum SpeedReaderError {
     DocumentParseError(String),
     #[error("Document rewriting error: `{0}`")]
     RewritingError(String),
+    #[error("Configuration error: `{0}`")]
+    ConfigurationError(String),
 }
 
 impl From<lol_html::errors::RewritingError> for SpeedReaderError {
@@ -93,23 +95,40 @@ impl RewriteRules {
 
 pub struct SpeedReader {
     whitelist: Whitelist,
+    url_engine: adblock::engine::Engine,
 }
 
 impl SpeedReader {
     pub fn new() -> Self {
         let mut whitelist = Whitelist::default();
         whitelist.load_predefined();
-        SpeedReader { whitelist }
+        let url_engine = adblock::engine::Engine::from_rules(&whitelist.get_url_rules());
+        SpeedReader {
+            whitelist,
+            url_engine,
+        }
     }
 
     pub fn with_whitelist(whitelist: Whitelist) -> Self {
-        SpeedReader { whitelist }
+        let url_engine = adblock::engine::Engine::from_rules(&whitelist.get_url_rules());
+        SpeedReader {
+            whitelist,
+            url_engine,
+        }
     }
 
-    pub fn find_config(
-        &self,
-        article_url: &str,
-    ) -> (Option<&SpeedReaderConfig>, Box<dyn Any>) {
+    pub fn url_readable(&self, url: &str) -> Option<bool> {
+        let matched = self.url_engine.check_network_urls(url, url, "document");
+        if matched.exception.is_some() {
+            Some(false)
+        } else if matched.matched {
+            Some(true)
+        } else {
+            None
+        }
+    }
+
+    pub fn find_config(&self, article_url: &str) -> (Option<&SpeedReaderConfig>, Box<dyn Any>) {
         let url = Url::parse(article_url).unwrap();
         let config = self
             .whitelist
@@ -133,18 +152,27 @@ impl SpeedReader {
         article_url: &str,
         config: Option<&SpeedReaderConfig>,
         extra: &'h Box<dyn Any>,
-        output_sink: O
+        output_sink: O,
     ) -> Result<Box<dyn SpeedReaderProcessor + 'h>, SpeedReaderError> {
         let url = Url::parse(article_url).unwrap();
         // let extra = extra as &dyn Any;
-        match extra.downcast_ref::<Vec<(Selector, ContentFunction)>>() {
-            Some(content_handlers) => {
-                match config {
-                    Some(_) => Ok(Box::new(SpeedReaderStreaming::try_new(url, output_sink, content_handlers)?)),
-                    _ => Ok(Box::new(SpeedReaderHeuristics::try_new(url.as_str(), output_sink)?))
-                }
+        if let Some(content_handlers) = extra.downcast_ref::<Vec<(Selector, ContentFunction)>>() {
+            match config {
+                Some(_) => Ok(Box::new(SpeedReaderStreaming::try_new(
+                    url,
+                    output_sink,
+                    content_handlers,
+                )?)),
+                _ => Ok(Box::new(SpeedReaderHeuristics::try_new(
+                    url.as_str(),
+                    output_sink,
+                )?)),
             }
-            _ => Err(SpeedReaderError::RewritingError("Bad Configuration".to_owned()))
+        } else {
+            Err(SpeedReaderError::ConfigurationError(
+                "The configuration `extra` parameter could not be unmarshalled to expected type"
+                    .to_owned(),
+            ))
         }
     }
 }

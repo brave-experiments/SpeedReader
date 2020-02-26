@@ -1,18 +1,16 @@
+use lol_html::OutputSink;
 use readability;
 use std::borrow::Borrow;
 use std::cell::RefCell;
 use url::Url;
 
-use lol_html::OutputSink;
-
-use super::classifier::Classifier;
 use super::classifier::feature_extractor::{FeatureExtractorStreamer, FeaturisingTreeSink};
-
+use super::classifier::Classifier;
 use super::speedreader::*;
 
 pub struct SpeedReaderHeuristics<O>
 where
-    O: OutputSink
+    O: OutputSink,
 {
     url: Option<Url>,
     readable: RefCell<Option<bool>>,
@@ -39,7 +37,9 @@ impl<O: OutputSink> SpeedReaderProcessor for SpeedReaderHeuristics<O> {
         }
         // Already decided the document is not readable
         if self.document_readable() == Some(false) {
-            return Err(SpeedReaderError::DocumentParseError("Not readable".to_owned()));
+            return Err(SpeedReaderError::RewritingError(
+                "Not readable with heuristics".to_owned(),
+            ));
         }
         let url = self.url.as_ref().unwrap();
         let (readable, maybe_doc) = process(self.streamer.end(), url);
@@ -50,11 +50,14 @@ impl<O: OutputSink> SpeedReaderProcessor for SpeedReaderHeuristics<O> {
                 self.output_sink.handle_chunk(doc.as_bytes());
                 Ok(())
             } else {
-                Err(SpeedReaderError::DocumentParseError("Not readable".to_owned()))
+                Err(SpeedReaderError::RewritingError(
+                    "Failed to extract content with heuristics".to_owned(),
+                ))
             }
-            
         } else {
-            Err(SpeedReaderError::DocumentParseError("Not readable".to_owned()))
+            Err(SpeedReaderError::RewritingError(
+                "Not readable with heuristics".to_owned(),
+            ))
         }
     }
 }
@@ -63,20 +66,19 @@ impl<O: OutputSink> SpeedReaderHeuristics<O> {
     pub fn try_new(url: &str, output_sink: O) -> Result<Self, SpeedReaderError> {
         let url_parsed = Url::parse(url);
 
-        url_parsed
-            .map(|url_parsed| {
-                if url_maybe_readable(&url_parsed) {
-                    let streamer = FeatureExtractorStreamer::try_new(&url_parsed)?;
-                    Ok(SpeedReaderHeuristics {
-                        url: Some(url_parsed),
-                        readable: RefCell::new(None),
-                        streamer,
-                        output_sink
-                    })
-                } else {
-                    Err(SpeedReaderError::InvalidUrl(url.to_owned()))
-                }
-            })?
+        url_parsed.map(|url_parsed| {
+            if url_maybe_readable(&url_parsed) {
+                let streamer = FeatureExtractorStreamer::try_new(&url_parsed)?;
+                Ok(SpeedReaderHeuristics {
+                    url: Some(url_parsed),
+                    readable: RefCell::new(None),
+                    streamer,
+                    output_sink,
+                })
+            } else {
+                Err(SpeedReaderError::InvalidUrl(url.to_owned()))
+            }
+        })?
     }
 
     pub fn document_readable(&self) -> Option<bool> {
@@ -107,12 +109,9 @@ mod tests {
     #[test]
     fn test_speedreader_streamer() {
         let mut buf = vec![];
-        let mut sreader = SpeedReaderHeuristics::try_new(
-            "https://test.xyz",
-            |c: &[u8]| {
-                buf.extend_from_slice(c)
-            }
-        ).unwrap();
+        let mut sreader =
+            SpeedReaderHeuristics::try_new("https://test.xyz", |c: &[u8]| buf.extend_from_slice(c))
+                .unwrap();
 
         let buff1 = "<html><p>hello".as_bytes();
         let buff2 = "world </p>\n\n\n\n<br><br><a href='/link'>".as_bytes();

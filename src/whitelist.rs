@@ -1,5 +1,6 @@
-use crate::speedreader::{AttributeRewrite, RewriteRules, SpeedReaderConfig};
 use std::collections::HashMap;
+
+use crate::speedreader::{AttributeRewrite, RewriteRules, SpeedReaderConfig};
 
 pub struct Whitelist {
     map: HashMap<String, SpeedReaderConfig>,
@@ -20,6 +21,13 @@ impl Whitelist {
 
     pub fn get_configuration(&self, domain: &str) -> Option<&SpeedReaderConfig> {
         self.map.get(domain)
+    }
+
+    pub fn get_url_rules(&self) -> Vec<String> {
+        self.map
+            .values()
+            .flat_map(|c| c.url_rules.iter().cloned())
+            .collect()
     }
 
     pub fn load_predefined(&mut self) {
