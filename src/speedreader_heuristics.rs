@@ -60,6 +60,10 @@ impl<O: OutputSink> SpeedReaderProcessor for SpeedReaderHeuristics<O> {
             ))
         }
     }
+
+    fn rewriter_type(&self) -> RewriterType {
+        RewriterType::Heuristics
+    }
 }
 
 impl<O: OutputSink> SpeedReaderHeuristics<O> {

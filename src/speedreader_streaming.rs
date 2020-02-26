@@ -26,6 +26,10 @@ impl<'h, O: OutputSink> SpeedReaderProcessor for SpeedReaderStreaming<'h, O> {
         &self.rewriter.end()?;
         Ok(())
     }
+
+    fn rewriter_type(&self) -> RewriterType {
+        RewriterType::Streaming
+    }
 }
 
 impl<'h, O: OutputSink> SpeedReaderStreaming<'h, O> {
