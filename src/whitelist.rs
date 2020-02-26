@@ -1,5 +1,6 @@
-use crate::speedreader::{AttributeRewrite, RewriteRules, SpeedReaderConfig};
 use std::collections::HashMap;
+
+use crate::speedreader::{AttributeRewrite, RewriteRules, SpeedReaderConfig};
 
 pub struct Whitelist {
     map: HashMap<String, SpeedReaderConfig>,
@@ -19,7 +20,28 @@ impl Whitelist {
     }
 
     pub fn get_configuration(&self, domain: &str) -> Option<&SpeedReaderConfig> {
-        self.map.get(domain)
+        if let Some(config) = self.map.get(domain) {
+            return Some(config)
+        }
+
+        for (i, c) in domain[..domain.len() - 2].char_indices() {
+            if c == '.' {
+                let subdomain = &domain[i + 1..];
+                let maybe_config = self.map.get(subdomain);
+                if maybe_config.is_some() {
+                    return maybe_config
+                }
+            }
+        }
+
+        return None
+    }
+
+    pub fn get_url_rules(&self) -> Vec<String> {
+        self.map
+            .values()
+            .flat_map(|c| c.url_rules.iter().cloned())
+            .collect()
     }
 
     pub fn load_predefined(&mut self) {
@@ -84,7 +106,10 @@ impl Whitelist {
 
         self.add_configuration(SpeedReaderConfig {
             domain: "cnn.com".to_owned(),
-            url_rules: vec![],
+            url_rules: vec![
+                r#"/cnn.com\/(\d){4}\/(\d){2}\/(\d){2}\/.*index.html/"#.to_owned(),
+                r#"||cnn.com/*/article/*/index.html"#.to_owned(),
+            ],
             declarative_rewrite: Some(RewriteRules {
                 main_content: vec![
                     ".pg-headline".to_owned(),
@@ -108,7 +133,9 @@ impl Whitelist {
 
         self.add_configuration(SpeedReaderConfig {
             domain: "nytimes.com".to_owned(),
-            url_rules: vec![],
+            url_rules: vec![
+                r#"/www.nytimes.com\/\d{4}\/\d{2}\/\d{2}\/([^\/]+(\/)?){2,3}\.html/"#.to_owned(),
+            ],
             declarative_rewrite: Some(RewriteRules {
                 main_content: vec![
                     "div.g-blocks".to_owned(),
@@ -151,7 +178,9 @@ impl Whitelist {
 
         self.add_configuration(SpeedReaderConfig {
             domain: "theguardian.com".to_owned(),
-            url_rules: vec![],
+            url_rules: vec![
+                r#"/theguardian.com\/.*\/(\d){4}\/\w+\/(\d){2}\/.*/"#.to_owned()
+            ],
             declarative_rewrite: Some(RewriteRules {
             main_content: vec![
                 "article header".to_owned(), ".content__article-body".to_owned(),
@@ -182,7 +211,13 @@ impl Whitelist {
 
         self.add_configuration(SpeedReaderConfig {
             domain: "washingtonpost.com".to_owned(),
-            url_rules: vec![],
+            url_rules: vec![
+                r#"/washingtonpost.com\/.*\/(\d){4}\/(\d){2}\/(\d){2}\/\w+/"#.to_owned(),
+                r#"||washingtonpost.com*_story.html"#.to_owned(),
+                r#"! travel pages currently handled poorly"#.to_owned(),
+                r#"@@||washingtonpost.com/travel"#.to_owned(),
+                // r#"||thelily.com/*/"#.to_owned(),
+            ],
             declarative_rewrite: Some(RewriteRules {
                 main_content: vec![
                     "main > header".to_owned(),
@@ -212,7 +247,33 @@ impl Whitelist {
 
         self.add_configuration(SpeedReaderConfig {
             domain: "foxnews.com".to_owned(),
-            url_rules: vec![],
+            url_rules: vec![
+                r#"@@||video.foxnews.com"#.to_owned(),
+                // r#"||foxbusiness.com/business-leaders/*"#.to_owned(),
+                // r#"||foxbusiness.com/lifestyle/*"#.to_owned(),
+                // r#"||foxbusiness.com/markets/*"#.to_owned(),
+                // r#"||foxbusiness.com/money/*"#.to_owned(),
+                // r#"||foxbusiness.com/politics/*"#.to_owned(),
+                // r#"||foxbusiness.com/sports/*"#.to_owned(),
+                // r#"||foxbusiness.com/technology/*"#.to_owned(),
+                r#"||foxnews.com/auto/*"#.to_owned(),
+                r#"||foxnews.com/entertainment/*"#.to_owned(),
+                r#"||foxnews.com/faith-values/*"#.to_owned(),
+                r#"||foxnews.com/food-drink/*"#.to_owned(),
+                r#"||foxnews.com/great-outdoors/*"#.to_owned(),
+                r#"||foxnews.com/health/*"#.to_owned(),
+                r#"||foxnews.com/lifestyle/*"#.to_owned(),
+                r#"||foxnews.com/media/*"#.to_owned(),
+                r#"||foxnews.com/opinion/*"#.to_owned(),
+                r#"||foxnews.com/politics/*"#.to_owned(),
+                r#"||foxnews.com/real-estate/*"#.to_owned(),
+                r#"||foxnews.com/science/*"#.to_owned(),
+                r#"||foxnews.com/sports/*"#.to_owned(),
+                r#"||foxnews.com/tech/*"#.to_owned(),
+                r#"||foxnews.com/travel/*"#.to_owned(),
+                r#"||foxnews.com/us/*"#.to_owned(),
+                r#"||foxnews.com/world/*"#.to_owned(),
+            ],
             declarative_rewrite: Some(RewriteRules {
                 main_content: vec!["article".to_owned()],
                 main_content_cleanup: vec![
@@ -229,7 +290,9 @@ impl Whitelist {
 
         self.add_configuration(SpeedReaderConfig {
             domain: "forbes.com".to_owned(),
-            url_rules: vec![],
+            url_rules: vec![
+                r#"/forbes.com\/sites\/\w+\/(\d){4}\/(\d){2}\/(\d){2}\/\w+/"#.to_owned(),
+            ],
             declarative_rewrite: Some(RewriteRules {
                 main_content: vec!["article > main".to_owned(), ".body-container".to_owned()],
                 main_content_cleanup: vec![
@@ -253,7 +316,10 @@ impl Whitelist {
 
         self.add_configuration(SpeedReaderConfig {
             domain: "cnbc.com".to_owned(),
-            url_rules: vec![],
+            url_rules: vec![
+                r#"/cnbc.com\/(\d){4}\/(\d){2}\/(\d){2}\/.*.html/"#.to_owned(),
+                r#"||cnbc.com/select/*/"#.to_owned(),
+            ],
             declarative_rewrite: Some(RewriteRules {
             main_content: vec![
                 "#main-article-header".to_owned(),
@@ -294,7 +360,9 @@ impl Whitelist {
 
         self.add_configuration(SpeedReaderConfig {
             domain: "usatoday.com".to_owned(),
-            url_rules: vec![],
+            url_rules: vec![
+                r#"||usatoday.com/story/*"#.to_owned(),
+            ],
             declarative_rewrite: Some(RewriteRules {
                 main_content: vec!["article".to_owned(), ".article-wrapper".to_owned()],
                 main_content_cleanup: vec![
@@ -324,7 +392,11 @@ impl Whitelist {
 
         self.add_configuration(SpeedReaderConfig {
             domain: "wsj.com".to_owned(),
-            url_rules: vec![],
+            url_rules: vec![
+                // r#"||www.barrons.com/articles/"#.to_owned(),
+                r#"||www.wsj.com/articles/"#.to_owned(),
+                // r#"||marketwatch.com/story/*"#.to_owned(),
+            ],
             declarative_rewrite: Some(RewriteRules {
                 main_content: vec!["article > main".to_owned()],
                 main_content_cleanup: vec![
@@ -340,7 +412,9 @@ impl Whitelist {
 
         self.add_configuration(SpeedReaderConfig {
             domain: "reuters.com".to_owned(),
-            url_rules: vec![],
+            url_rules: vec![
+                r#"||reuters.com/article/*"#.to_owned()
+            ],
             declarative_rewrite: Some(RewriteRules {
             main_content: vec![
                 ".ArticleHeader_container".to_owned(), ".StandardArticleBody_body".to_owned(),
@@ -560,5 +634,95 @@ impl Whitelist {
                 }],
             }),
         });
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    pub fn default_whitelist_no_config() {
+        let whitelist = Whitelist::default();
+        assert!(whitelist.map.is_empty());
+        let config = whitelist.get_configuration("example.com");
+        assert!(config.is_none());
+    }
+
+    #[test]
+    pub fn get_some_configuration() {
+        let mut whitelist = Whitelist::default();
+        whitelist.add_configuration(SpeedReaderConfig {
+            domain: "example.com".to_owned(),
+            url_rules: vec![
+                r#"||example.com/article"#.to_owned(),
+                r#"@@||example.com/article/video"#.to_owned(),
+            ],
+            declarative_rewrite: None,
+        });
+        let config = whitelist.get_configuration("example.com");
+        assert!(config.is_some());
+    }
+
+    #[test]
+    pub fn get_some_subdomain_configuration() {
+        let mut whitelist = Whitelist::default();
+        whitelist.add_configuration(SpeedReaderConfig {
+            domain: "example.com".to_owned(),
+            url_rules: vec![
+                r#"||example.com/article"#.to_owned(),
+                r#"@@||example.com/article/video"#.to_owned(),
+            ],
+            declarative_rewrite: None,
+        });
+        let config = whitelist.get_configuration("www.example.com");
+        assert!(config.is_some());
+    }
+
+    #[test]
+    pub fn url_rules_collected() {
+        let mut whitelist = Whitelist::default();
+        whitelist.add_configuration(SpeedReaderConfig {
+            domain: "example.com".to_owned(),
+            url_rules: vec![
+                r#"||example.com/article"#.to_owned(),
+                r#"@@||example.com/article/video"#.to_owned(),
+            ],
+            declarative_rewrite: None,
+        });
+        whitelist.add_configuration(SpeedReaderConfig {
+            domain: "example.net".to_owned(),
+            url_rules: vec![
+                r#"||example.net/article"#.to_owned(),
+            ],
+            declarative_rewrite: None,
+        });
+        let rules = whitelist.get_url_rules();
+        assert_eq!(rules.len(), 3);
+    }
+
+    #[test]
+    pub fn conflicting_insert_overrides() {
+        let mut whitelist = Whitelist::default();
+        whitelist.add_configuration(SpeedReaderConfig {
+            domain: "example.com".to_owned(),
+            url_rules: vec![
+                r#"||example.com/article"#.to_owned(),
+                r#"@@||example.com/article/video"#.to_owned(),
+            ],
+            declarative_rewrite: None,
+        });
+        whitelist.add_configuration(SpeedReaderConfig {
+            domain: "example.com".to_owned(),
+            url_rules: vec![
+                r#"||example.com/news"#.to_owned(),
+            ],
+            declarative_rewrite: None,
+        });
+        assert_eq!(whitelist.map.len(), 1);
+        let config = whitelist.get_configuration("example.com");
+        assert!(config.is_some());
+        assert_eq!(config.unwrap().url_rules, vec!["||example.com/news".to_owned()]);
     }
 }

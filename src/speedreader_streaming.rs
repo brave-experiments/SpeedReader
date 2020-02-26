@@ -1,16 +1,19 @@
-use url::Url;
 use lol_html::doc_comments;
-use lol_html::{HtmlRewriter, Settings};
 use lol_html::OutputSink;
 use lol_html::Selector;
+use lol_html::{HtmlRewriter, Settings};
+use url::Url;
 
+use super::rewriter_config_builder::{content_handlers, ContentFunction};
 use super::speedreader::*;
 use super::whitelist::Whitelist;
-use super::rewriter_config_builder::{ContentFunction, content_handlers};
 
-pub struct SpeedReaderStreaming<'h, O> where O: OutputSink {
+pub struct SpeedReaderStreaming<'h, O>
+where
+    O: OutputSink,
+{
     _url: Url,
-    rewriter: HtmlRewriter<'h, O>
+    rewriter: HtmlRewriter<'h, O>,
 }
 
 impl<'h, O: OutputSink> SpeedReaderProcessor for SpeedReaderStreaming<'h, O> {
@@ -23,26 +26,32 @@ impl<'h, O: OutputSink> SpeedReaderProcessor for SpeedReaderStreaming<'h, O> {
         &self.rewriter.end()?;
         Ok(())
     }
+
+    fn rewriter_type(&self) -> RewriterType {
+        RewriterType::Streaming
+    }
 }
 
 impl<'h, O: OutputSink> SpeedReaderStreaming<'h, O> {
-    pub fn try_new(url: Url, output_sink: O, config: &'h Vec<(Selector, ContentFunction)>) -> Result<Self, SpeedReaderError> {
+    pub fn try_new(
+        url: Url,
+        output_sink: O,
+        config: &'h Vec<(Selector, ContentFunction)>,
+    ) -> Result<Self, SpeedReaderError> {
         let mut whitelist = Whitelist::default();
         whitelist.load_predefined();
-    
         let rewriter = HtmlRewriter::try_new(
             Settings {
                 element_content_handlers: content_handlers(config),
                 document_content_handlers: vec![doc_comments!(|el| Ok(el.remove()))],
                 ..Settings::default()
             },
-            output_sink
+            output_sink,
         )?;
-
 
         let sr = SpeedReaderStreaming {
             _url: url,
-            rewriter: rewriter
+            rewriter: rewriter,
         };
 
         Ok(sr)

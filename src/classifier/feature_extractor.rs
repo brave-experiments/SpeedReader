@@ -1,10 +1,3 @@
-use std::borrow::Cow;
-use std::clone::Clone;
-use std::collections::HashMap;
-use std::default::Default;
-use std::string::String;
-use std::vec::Vec;
-
 use html5ever;
 use html5ever::driver::{ParseOpts, Parser};
 use html5ever::rcdom::Handle;
@@ -13,6 +6,12 @@ use html5ever::rcdom::RcDom;
 use html5ever::tendril::*;
 use html5ever::tree_builder::{AppendText, ElementFlags, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, QualName};
+use std::borrow::Cow;
+use std::clone::Clone;
+use std::collections::HashMap;
+use std::default::Default;
+use std::string::String;
+use std::vec::Vec;
 use url::Url;
 
 use crate::speedreader::SpeedReaderError;
