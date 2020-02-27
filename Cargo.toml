@@ -7,6 +7,17 @@ authors = [
 ]
 edition = "2018"
 
+include = [
+    "/Cargo.toml",
+    "/build.rs",
+    "/LICENSE",
+    "/README.md",
+    "/src",
+    "/tests",
+    "/examples",
+    "/benches"
+]
+
 [workspace]
 members = [
     "src/readability"
