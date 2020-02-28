@@ -1,6 +1,15 @@
 # The language to output bindings in
-language = "C"
+language = "C++"
+
+# Options for Wrapping the Contents of the Header
 include_guard = "SPEEDREADER_RUST_FFI_H"
+namespace = "speedreader_ffi"
+
+# Code Stylr Options
+braces = "SameLine"
+line_length = 80
+tab_width = 2
+documentation_style = "auto"
 
 [parse]
 # Whether to parse dependent crates and include their types in the generated

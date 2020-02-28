@@ -1,4 +1,4 @@
-use libc::{c_char, c_int, c_void, size_t};
+use libc::{c_char, c_int, size_t};
 use ::speedreader::*;
 use std::cell::RefCell;
 use std::{ptr, slice, str};
@@ -29,17 +29,23 @@ macro_rules! to_ref {
     }};
 }
 
-macro_rules! to_ref_mut {
-    ($ptr:ident) => {{
-        assert_not_null!($ptr);
-        unsafe { &mut *$ptr }
-    }};
-}
-
 macro_rules! void_to_box {
     ($ptr:ident) => {{
         assert_not_null!($ptr);
         unsafe { Box::from_raw($ptr as *mut _) }
+    }};
+}
+
+macro_rules! leak_void_to_box {
+    ($ptr:ident) => {{
+        assert_not_null!($ptr);
+        Box::leak(unsafe { Box::from_raw($ptr as *mut _) })
+    }};
+}
+
+macro_rules! box_to_opaque {
+    ($ptr:ident, $opaque:ident) => {{
+        to_ptr_mut($ptr) as *mut $opaque
     }};
 }
 
@@ -84,16 +90,6 @@ macro_rules! unwrap_or_ret_err_code {
 macro_rules! unwrap_or_ret_null {
     ($expr:expr) => {
         unwrap_or_ret!($expr, ptr::null_mut())
-    };
-}
-
-macro_rules! get_user_data {
-    ($unit:ident) => {
-        to_ref!($unit)
-            .user_data()
-            .downcast_ref::<*mut c_void>()
-            .map(|d| *d)
-            .unwrap_or(ptr::null_mut())
     };
 }
 

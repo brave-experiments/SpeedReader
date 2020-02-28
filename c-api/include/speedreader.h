@@ -1,40 +1,49 @@
-#ifndef SPEEDREADER_RUST_FFI_H
-#define SPEEDREADER_RUST_FFI_H
+#include <cstdarg>
+#include <cstdint>
+#include <cstdlib>
+#include <new>
 
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
-
-typedef enum {
+/// Indicate type of rewriter that would be used based on existing
+/// configuration. `RewrtierUnknown` indicates that no configuration was found
+/// for the provided parameters.
+/// Also used to ask for a specific type of rewriter if desired; passing
+/// `RewriterUnknown` tells SpeedReader to look the type up by configuration
+/// and use heuristics-based one if not found otherwise.
+enum class CRewriterType {
   RewriterStreaming,
   RewriterHeuristics,
   RewriterUnknown,
-} C_CRewriterType;
+};
 
-typedef struct C_SpeedReader C_SpeedReader;
+/// Opaque structure to have the minimum amount of type safety across the FFI.
+/// Only replaces c_void
+struct CSpeedReaderProcessor {
+  uint8_t _private[0];
+};
 
-void *speedreader_find_config_extras(C_SpeedReader *speedreader, const char *url, size_t url_len);
+extern "C" {
 
-C_CRewriterType speedreader_find_type(C_SpeedReader *speedreader, const char *url, size_t url_len);
+CRewriterType speedreader_find_type(SpeedReader *speedreader, const char *url, size_t url_len);
 
-void speedreader_free(C_SpeedReader *speedreader);
+void speedreader_free(SpeedReader *speedreader);
 
-void *speedreader_get_rewriter(C_SpeedReader *speedreader,
-                               const char *url,
-                               size_t url_len,
-                               C_CRewriterType rewriter_type,
-                               void *config_extras,
-                               void (*output_sink)(const char*, size_t));
+/// test documentation
+CSpeedReaderProcessor *speedreader_get_rewriter(SpeedReader *speedreader,
+                                                const char *url,
+                                                size_t url_len,
+                                                void (*output_sink)(const char*, size_t),
+                                                CRewriterType rewriter_type);
 
-C_SpeedReader *speedreader_new(void);
+SpeedReader *speedreader_new();
 
-int speedreader_processor_end(void *processor);
+int speedreader_processor_end(CSpeedReaderProcessor *processor);
 
-void speedreader_processor_free(void *processor, void *config_extras);
+void speedreader_processor_free(CSpeedReaderProcessor *processor);
 
-int speedreader_processor_write(void *processor, const char *chunk, size_t chunk_len);
+int speedreader_processor_write(CSpeedReaderProcessor *processor,
+                                const char *chunk,
+                                size_t chunk_len);
 
-bool speedreader_url_readable(C_SpeedReader *speedreader, const char *url, size_t url_len);
+bool speedreader_url_readable(SpeedReader *speedreader, const char *url, size_t url_len);
 
-#endif /* SPEEDREADER_RUST_FFI_H */
+} // extern "C"

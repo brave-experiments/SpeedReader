@@ -1,18 +1,13 @@
 use super::*;
-use libc::c_void;
 
-// NOTE: we use `ExternOutputSink` proxy type, because we need an
-// existential type parameter for the `HtmlRewriter` and FnMut can't
-// be used as such since it's a trait.
-pub struct ExternOutputSink {
-    handler: unsafe extern "C" fn(*const c_char, size_t)
+// NOTE: we use `ExternOutputSink` proxy type, for extern handler function
+struct ExternOutputSink {
+    handler: unsafe extern "C" fn(*const c_char, size_t),
 }
 
 impl ExternOutputSink {
     #[inline]
-    fn new(
-        handler: unsafe extern "C" fn(*const c_char, size_t),
-    ) -> Self {
+    fn new(handler: unsafe extern "C" fn(*const c_char, size_t)) -> Self {
         ExternOutputSink { handler }
     }
 }
@@ -27,6 +22,12 @@ impl OutputSink for ExternOutputSink {
     }
 }
 
+/// Indicate type of rewriter that would be used based on existing
+/// configuration. `RewrtierUnknown` indicates that no configuration was found
+/// for the provided parameters.
+/// Also used to ask for a specific type of rewriter if desired; passing
+/// `RewriterUnknown` tells SpeedReader to look the type up by configuration
+/// and use heuristics-based one if not found otherwise.
 #[repr(C)]
 pub enum CRewriterType {
     RewriterStreaming,
@@ -35,11 +36,11 @@ pub enum CRewriterType {
 }
 
 impl CRewriterType {
-    fn to_rewriter_type(&self) -> RewriterType {
+    fn to_rewriter_type(&self) -> Option<RewriterType> {
         match &self {
-            CRewriterType::RewriterStreaming => RewriterType::Streaming,
-            CRewriterType::RewriterHeuristics => RewriterType::Heuristics,
-            CRewriterType::RewriterUnknown => RewriterType::Unknown,
+            CRewriterType::RewriterStreaming => Some(RewriterType::Streaming),
+            CRewriterType::RewriterHeuristics => Some(RewriterType::Heuristics),
+            CRewriterType::RewriterUnknown => None,
         }
     }
 }
@@ -52,6 +53,13 @@ impl From<RewriterType> for CRewriterType {
             RewriterType::Unknown => CRewriterType::RewriterUnknown,
         }
     }
+}
+
+/// Opaque structure to have the minimum amount of type safety across the FFI.
+/// Only replaces c_void
+#[repr(C)]
+pub struct CSpeedReaderProcessor {
+    _private: [u8; 0],
 }
 
 #[no_mangle]
@@ -78,49 +86,35 @@ pub extern "C" fn speedreader_find_type(
 ) -> CRewriterType {
     let url = unwrap_or_ret! { to_str!(url, url_len), CRewriterType::RewriterUnknown};
     let speedreader = to_ref!(speedreader);
-    let (rewriter_type, _) = speedreader.get_rewriter_type(url);
+    let rewriter_type = speedreader.get_rewriter_type(url);
     CRewriterType::from(rewriter_type)
 }
 
-#[no_mangle]
-pub extern "C" fn speedreader_find_config_extras(
-    speedreader: *mut SpeedReader,
-    url: *const c_char,
-    url_len: size_t,
-) -> *mut c_void {
-    let url = unwrap_or_ret_null! { to_str!(url, url_len) };
-    let speedreader = to_ref!(speedreader);
-    let (_, opaque) = speedreader.get_rewriter_type(url);
-    to_ptr(opaque) as *mut c_void
-}
-
+/// test documentation
 #[no_mangle]
 pub extern "C" fn speedreader_get_rewriter(
     speedreader: *mut SpeedReader,
     url: *const c_char,
     url_len: size_t,
-    rewriter_type: CRewriterType,
-    config_extras: *mut c_void,
     output_sink: unsafe extern "C" fn(*const c_char, size_t),
-    // output_sink_user_data: *mut c_void,
-) -> *mut c_void {
+    rewriter_type: CRewriterType,
+) -> *mut CSpeedReaderProcessor {
     let url = unwrap_or_ret_null! { to_str!(url, url_len) };
     let speedreader = to_ref!(speedreader);
 
-    let config_extras: Box<Box<_>> = void_to_box!(config_extras);
+    let opaque_config = speedreader.get_opaque_config(url);
 
     let output_sink = ExternOutputSink::new(output_sink);
 
     let rewriter = speedreader
         .get_rewriter(
             url,
-            rewriter_type.to_rewriter_type(),
-            &config_extras,
+            &opaque_config,
             output_sink,
+            rewriter_type.to_rewriter_type(),
         )
         .unwrap();
-    
-    to_ptr(rewriter) as *mut c_void
+    box_to_opaque!(rewriter, CSpeedReaderProcessor)
 }
 
 #[no_mangle]
@@ -130,34 +124,25 @@ pub extern "C" fn speedreader_free(speedreader: *mut SpeedReader) {
 
 #[no_mangle]
 pub extern "C" fn speedreader_processor_write(
-    processor: *mut c_void,
+    processor: *mut CSpeedReaderProcessor,
     chunk: *const c_char,
     chunk_len: size_t,
 ) -> c_int {
     let chunk = to_bytes!(chunk, chunk_len);
-    let mut processor: Box<Box<dyn SpeedReaderProcessor>> = void_to_box!(processor);
+    let processor: &mut Box<dyn SpeedReaderProcessor> = leak_void_to_box!(processor);
 
     unwrap_or_ret_err_code! { processor.write(chunk) };
-
     0
 }
 
 #[no_mangle]
-pub extern "C" fn speedreader_processor_end(processor: *mut c_void) -> c_int {
+pub extern "C" fn speedreader_processor_end(processor: *mut CSpeedReaderProcessor) -> c_int {
     let mut processor: Box<Box<dyn SpeedReaderProcessor>> = void_to_box!(processor);
-
     unwrap_or_ret_err_code! { processor.end() };
-
     0
 }
 
 #[no_mangle]
-pub extern "C" fn speedreader_processor_free(processor: *mut c_void, config_extras: *mut c_void) {
-    // let processor: Box<Box<dyn SpeedReaderProcessor>> =
-    //     unsafe { Box::from_raw(processor as *mut _) };
-    // drop(processor.as_ref().as_ref());
-
-    // let config: Box<Box<dyn Any>> =
-    //     unsafe { Box::from_raw(config_extras as *mut _) };
-    // drop(config.as_ref().as_ref());
+pub extern "C" fn speedreader_processor_free(processor: *mut CSpeedReaderProcessor) {
+    void_to_box!(processor);
 }
