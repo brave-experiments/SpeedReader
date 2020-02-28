@@ -1,8 +1,9 @@
-use lol_html::OutputSink;
 use lol_html::Selector;
 use std::any::Any;
 use thiserror::Error;
 use url::Url;
+
+pub use lol_html::OutputSink;
 
 use super::rewriter_config_builder::*;
 use super::speedreader_heuristics::SpeedReaderHeuristics;
@@ -45,10 +46,22 @@ impl From<std::io::Error> for SpeedReaderError {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[repr(u8)]
 pub enum RewriterType {
-    Streaming,
-    Heuristics,
+    Streaming = 0,
+    Heuristics = 1,
+    Unknown = 2
+}
+
+impl From<u8> for RewriterType {
+    fn from(r_type: u8) -> Self {
+        match r_type {
+            0 => RewriterType::Streaming,
+            1 => RewriterType::Heuristics,
+            _ => RewriterType::Unknown
+        }
+    }
 }
 
 pub trait SpeedReaderProcessor {
@@ -135,40 +148,35 @@ impl SpeedReader {
         }
     }
 
-    pub fn find_config(&self, article_url: &str) -> (Option<&SpeedReaderConfig>, Box<dyn Any>) {
+    pub fn get_rewriter_type(&self, article_url: &str) -> (RewriterType, Box<dyn Any>) {
         let url = Url::parse(article_url).unwrap();
         let config = self
             .whitelist
             .get_configuration(&url.domain().unwrap_or_default());
 
-        let content_handlers;
+        let content_handlers: Vec<(Selector, ContentFunction)> = vec![];
         match config {
             Some(SpeedReaderConfig {
                 domain: _,
                 url_rules: _,
                 declarative_rewrite: Some(rewrite),
-            }) => content_handlers = rewrite.get_content_handlers(&url),
-            _ => content_handlers = vec![],
+            }) =>(RewriterType::Streaming, Box::new(rewrite.get_content_handlers(&url))),
+            Some(_) => (RewriterType::Heuristics, Box::new(content_handlers)),
+            None => (RewriterType::Unknown, Box::new(content_handlers))
         }
-
-        (config, Box::new(content_handlers))
     }
 
     pub fn get_rewriter<'h, O: OutputSink + 'h>(
         &'h self,
         article_url: &str,
-        config: Option<&SpeedReaderConfig>,
+        config: RewriterType,
         extra: &'h Box<dyn Any>,
         output_sink: O,
     ) -> Result<Box<dyn SpeedReaderProcessor + 'h>, SpeedReaderError> {
         let url = Url::parse(article_url).unwrap();
         if let Some(content_handlers) = extra.downcast_ref::<Vec<(Selector, ContentFunction)>>() {
             match config {
-                Some(SpeedReaderConfig {
-                    domain: _,
-                    url_rules: _,
-                    declarative_rewrite: Some(_),
-                }) => Ok(Box::new(SpeedReaderStreaming::try_new(
+                RewriterType::Streaming => Ok(Box::new(SpeedReaderStreaming::try_new(
                     url,
                     output_sink,
                     content_handlers,
@@ -247,22 +255,22 @@ mod test {
     #[test]
     pub fn configuration_matching_some() {
         let sr = SpeedReader::with_whitelist(get_whitelist());
-        let (config, _) = sr.find_config("http://example.com/article/today");
-        assert!(config.is_some());
+        let (config, _) = sr.get_rewriter_type("http://example.com/article/today");
+        assert_eq!(config, RewriterType::Heuristics);
     }
 
     #[test]
     pub fn configuration_nomatch_none() {
         let sr = SpeedReader::with_whitelist(get_whitelist());
-        let (config, _) = sr.find_config("http://bbc.com/article/today");
-        assert!(config.is_none());
+        let (config, _) = sr.get_rewriter_type("http://bbc.com/article/today");
+        assert_eq!(config, RewriterType::Unknown);
     }
 
     #[test]
     pub fn configuration_opaque_correctly_typed() {
         let sr = SpeedReader::with_whitelist(get_whitelist());
-        let (config, opaque) = sr.find_config("http://example.com/article/today");
-        assert!(config.is_some());
+        let (config, opaque) = sr.get_rewriter_type("http://example.com/article/today");
+        assert_eq!(config, RewriterType::Heuristics);
         assert!(opaque
             .downcast_ref::<Vec<(Selector, ContentFunction)>>()
             .is_some());
@@ -272,8 +280,8 @@ mod test {
     pub fn rewriter_configured_heuristics() {
         let sr = SpeedReader::with_whitelist(get_whitelist());
         let article = "http://example.com/article/today";
-        let (config, opaque) = sr.find_config(article);
-        assert!(config.is_some());
+        let (config, opaque) = sr.get_rewriter_type(article);
+        assert_eq!(config, RewriterType::Heuristics);
         let maybe_rewriter = sr.get_rewriter(article, config, &opaque, |_: &[u8]| {});
         assert!(maybe_rewriter.is_ok());
         let rewriter = maybe_rewriter.unwrap();
@@ -284,8 +292,8 @@ mod test {
     pub fn rewriter_configured_streaming() {
         let sr = SpeedReader::with_whitelist(get_whitelist());
         let article = "http://example.net/article/today";
-        let (config, opaque) = sr.find_config(article);
-        assert!(config.is_some());
+        let (config, opaque) = sr.get_rewriter_type(article);
+        assert_eq!(config, RewriterType::Streaming);
         let maybe_rewriter = sr.get_rewriter(article, config, &opaque, |_: &[u8]| {});
         assert!(maybe_rewriter.is_ok());
         let rewriter = maybe_rewriter.unwrap();

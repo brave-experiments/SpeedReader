@@ -20,7 +20,9 @@ include = [
 
 [workspace]
 members = [
-    "src/readability"
+    "src/readability",
+    "c-api",
+    "c-api/test",
 ]
 
 [dependencies]

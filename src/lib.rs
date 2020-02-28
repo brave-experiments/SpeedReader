@@ -19,5 +19,5 @@ pub mod whitelist;
 
 pub use self::speedreader::{
     AttributeRewrite, RewriteRules, SpeedReader, SpeedReaderConfig, SpeedReaderError,
-    SpeedReaderProcessor,
+    SpeedReaderProcessor, RewriterType, OutputSink
 };

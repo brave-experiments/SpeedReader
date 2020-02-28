@@ -44,7 +44,7 @@ async fn stream_content(article_url: &str) -> Result<(), Box<dyn Error>> {
         fs::File::create(format!("{}/mapped.html", "data/lolhtml/dump/test"))?;
 
     let sr = SpeedReader::new();
-    let (config, user_data) = sr.find_config(article_url);
+    let (config, user_data) = sr.get_rewriter_type(article_url);
     let mut rewriter = sr
         .get_rewriter(article_url, config, &user_data, |c: &[u8]| {
             mapped_file.write_all(c).ok();

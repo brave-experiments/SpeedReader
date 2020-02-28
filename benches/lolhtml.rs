@@ -15,7 +15,7 @@ fn bench_lolhtml(c: &mut Criterion) {
         .unwrap();
     
     let sr = speedreader::SpeedReader::new();
-    let (config, user_data) = sr.find_config(article_url);
+    let (config, user_data) = sr.get_rewriter_type(article_url);
 
     c.bench_function("lolhtml-cnet", |b| b.iter(|| {
         let mut output = vec![];
@@ -39,7 +39,7 @@ fn bench_html5ever(c: &mut Criterion) {
         .unwrap();
     
     let sr = speedreader::SpeedReader::with_whitelist(speedreader::whitelist::Whitelist::default());
-    let (config, user_data) = sr.find_config(article_url);
+    let (config, user_data) = sr.get_rewriter_type(article_url);
 
     c.bench_function("html5ever-cnet", |b| b.iter(|| {
         let mut output = vec![];
