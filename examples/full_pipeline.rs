@@ -1,11 +1,11 @@
-extern crate url;
 extern crate speedreader;
+extern crate url;
 
-use speedreader::classifier::feature_extractor::FeatureExtractorStreamer;
 use readability::extractor::extract_dom;
+use speedreader::classifier::feature_extractor::FeatureExtractorStreamer;
 use speedreader::classifier::Classifier;
-use url::Url;
 use std::fs;
+use url::Url;
 
 fn main() {
     let url = Url::parse("http://example.com/hello/world/hello?again").unwrap();
@@ -20,10 +20,9 @@ fn main() {
     for (k, v) in result.features.to_owned().iter() {
         println!("{}: {}", k, v);
     }
-    
+
     // document classification
-    let classifier_result = Classifier::from_feature_map(&result.features)
-        .classify();
+    let classifier_result = Classifier::from_feature_map(&result.features).classify();
     println!(">> Readble?\n {}", classifier_result);
 
     // document mapper

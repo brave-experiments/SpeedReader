@@ -1,7 +1,9 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::speedreader::{AttributeRewrite, RewriteRules, SpeedReaderConfig};
+use crate::speedreader::{AttributeRewrite, RewriteRules, SpeedReaderConfig, SpeedReaderError};
 
+#[derive(Serialize, Deserialize)]
 pub struct Whitelist {
     map: HashMap<String, SpeedReaderConfig>,
 }
@@ -15,13 +17,13 @@ impl Default for Whitelist {
 }
 
 impl Whitelist {
-    pub fn add_configuration(&mut self, config: SpeedReaderConfig) -> () {
+    pub fn add_configuration(&mut self, config: SpeedReaderConfig) {
         self.map.insert(config.domain.clone(), config);
     }
 
     pub fn get_configuration(&self, domain: &str) -> Option<&SpeedReaderConfig> {
         if let Some(config) = self.map.get(domain) {
-            return Some(config)
+            return Some(config);
         }
 
         for (i, c) in domain[..domain.len() - 2].char_indices() {
@@ -29,12 +31,12 @@ impl Whitelist {
                 let subdomain = &domain[i + 1..];
                 let maybe_config = self.map.get(subdomain);
                 if maybe_config.is_some() {
-                    return maybe_config
+                    return maybe_config;
                 }
             }
         }
 
-        return None
+        None
     }
 
     pub fn get_url_rules(&self) -> Vec<String> {
@@ -42,6 +44,16 @@ impl Whitelist {
             .values()
             .flat_map(|c| c.url_rules.iter().cloned())
             .collect()
+    }
+
+    pub fn serialize(&self) -> Result<Vec<u8>, SpeedReaderError> {
+        let mut out = Vec::new();
+        rmps::encode::write(&mut out, &self)?;
+        Ok(out)
+    }
+
+    pub fn deserialize(serialized: &[u8]) -> Result<Self, SpeedReaderError> {
+        Ok(rmps::decode::from_read(serialized)?)
     }
 
     pub fn load_predefined(&mut self) {
@@ -360,9 +372,7 @@ impl Whitelist {
 
         self.add_configuration(SpeedReaderConfig {
             domain: "usatoday.com".to_owned(),
-            url_rules: vec![
-                r#"||usatoday.com/story/*"#.to_owned(),
-            ],
+            url_rules: vec![r#"||usatoday.com/story/*"#.to_owned()],
             declarative_rewrite: Some(RewriteRules {
                 main_content: vec!["article".to_owned(), ".article-wrapper".to_owned()],
                 main_content_cleanup: vec![
@@ -610,7 +620,7 @@ impl Whitelist {
             url_rules: vec![],
             declarative_rewrite: Some(RewriteRules {
                 main_content: vec![
-                    ".post-headline".to_owned(),
+                    ".post-headline:nth".to_owned(),
                     ".byline-wrapper".to_owned(),
                     "#l-content".to_owned(),
                     ".container figure".to_owned(),
@@ -636,7 +646,6 @@ impl Whitelist {
         });
     }
 }
-
 
 #[cfg(test)]
 mod test {
@@ -693,9 +702,7 @@ mod test {
         });
         whitelist.add_configuration(SpeedReaderConfig {
             domain: "example.net".to_owned(),
-            url_rules: vec![
-                r#"||example.net/article"#.to_owned(),
-            ],
+            url_rules: vec![r#"||example.net/article"#.to_owned()],
             declarative_rewrite: None,
         });
         let rules = whitelist.get_url_rules();
@@ -715,14 +722,15 @@ mod test {
         });
         whitelist.add_configuration(SpeedReaderConfig {
             domain: "example.com".to_owned(),
-            url_rules: vec![
-                r#"||example.com/news"#.to_owned(),
-            ],
+            url_rules: vec![r#"||example.com/news"#.to_owned()],
             declarative_rewrite: None,
         });
         assert_eq!(whitelist.map.len(), 1);
         let config = whitelist.get_configuration("example.com");
         assert!(config.is_some());
-        assert_eq!(config.unwrap().url_rules, vec!["||example.com/news".to_owned()]);
+        assert_eq!(
+            config.unwrap().url_rules,
+            vec!["||example.com/news".to_owned()]
+        );
     }
 }

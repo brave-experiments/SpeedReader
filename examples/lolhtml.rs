@@ -43,13 +43,18 @@ async fn stream_content(article_url: &str) -> Result<(), Box<dyn Error>> {
     let mut mapped_test_file =
         fs::File::create(format!("{}/mapped.html", "data/lolhtml/dump/test"))?;
 
-    let sr = SpeedReader::new();
-    let (config, user_data) = sr.find_config(article_url);
-    let mut rewriter = sr
-        .get_rewriter(article_url, config, &user_data, |c: &[u8]| {
+    let sr = SpeedReader::default();
+    let config = sr.get_rewriter_type(article_url);
+    let opaque = sr.get_opaque_config(article_url);
+    let mut rewriter = sr.get_rewriter(
+        article_url,
+        &opaque,
+        |c: &[u8]| {
             mapped_file.write_all(c).ok();
             mapped_test_file.write_all(c).ok();
-        })?;
+        },
+        Some(config),
+    )?;
 
     let mut init_file = fs::File::create(format!("{}/init.html", &dir))?;
     let mut init_test_file = fs::File::create(format!("{}/init.html", "data/lolhtml/dump/test"))?;

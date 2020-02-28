@@ -1,4 +1,3 @@
-use html5ever;
 use html5ever::driver::{ParseOpts, Parser};
 use html5ever::rcdom::Handle;
 use html5ever::rcdom::NodeData;
@@ -24,8 +23,10 @@ pub struct FeatureExtractorStreamer {
 impl FeatureExtractorStreamer {
     pub fn try_new(url: &Url) -> Result<Self, SpeedReaderError> {
         let mut sink = FeaturisingTreeSink::default();
-        sink.features
-            .insert("url_depth".to_string(), url_depth(url).unwrap() as u32);
+        sink.features.insert(
+            "url_depth".to_string(),
+            url_depth(url).unwrap_or_default() as u32,
+        );
 
         let parser = html5ever::parse_document(sink, ParseOpts::default());
 
@@ -67,7 +68,7 @@ impl Clone for FeaturisingTreeSink {
         let cloned_r = RcDom {
             document: self.rcdom.document.clone(),
             errors: self.rcdom.errors.clone(),
-            quirks_mode: self.rcdom.quirks_mode.clone(),
+            quirks_mode: self.rcdom.quirks_mode,
         };
 
         FeaturisingTreeSink {

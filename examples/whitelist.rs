@@ -1,10 +1,10 @@
-extern crate url;
-extern crate speedreader;
-extern crate reqwest;
 extern crate adblock;
+extern crate reqwest;
+extern crate speedreader;
+extern crate url;
 
-use std::io;
 use std::fs;
+use std::io;
 
 fn main() -> io::Result<()> {
     let mut correct = true;
@@ -49,7 +49,10 @@ fn main() -> io::Result<()> {
             for url in expected_unreadable {
                 let check = adblock_matcher.check_network_urls(&url, &url, "");
                 if check.matched {
-                    println!("Error: expected {} to not match provided filters, but matched {:?}", url, check.filter);
+                    println!(
+                        "Error: expected {} to not match provided filters, but matched {:?}",
+                        url, check.filter
+                    );
                     correct = false;
                 }
             }
@@ -57,12 +60,14 @@ fn main() -> io::Result<()> {
             if correct {
                 full_whitelist.append(&mut whitelist);
             }
-            
         }
     }
 
     let whitelist_filename = "whitelist.txt";
-    println!("Everything correct, writing used rules to {}", whitelist_filename);
+    println!(
+        "Everything correct, writing used rules to {}",
+        whitelist_filename
+    );
     fs::write(whitelist_filename, full_whitelist.join("\n").as_bytes())?;
     Ok(())
 }
