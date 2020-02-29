@@ -1,7 +1,10 @@
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+use rmps;
 
-use crate::speedreader::{AttributeRewrite, RewriteRules, SpeedReaderConfig};
+use crate::speedreader::{AttributeRewrite, RewriteRules, SpeedReaderConfig, SpeedReaderError};
 
+#[derive(Serialize, Deserialize)]
 pub struct Whitelist {
     map: HashMap<String, SpeedReaderConfig>,
 }
@@ -42,6 +45,16 @@ impl Whitelist {
             .values()
             .flat_map(|c| c.url_rules.iter().cloned())
             .collect()
+    }
+
+    pub fn serialize(&self) -> Result<Vec<u8>, SpeedReaderError> {
+        let mut out = Vec::new();
+        rmps::encode::write(&mut out, &self)?;
+        Ok(out)
+    }
+
+    pub fn deserialize(serialized: &[u8]) -> Result<Self, SpeedReaderError> {
+        Ok(rmps::decode::from_read(serialized)?)
     }
 
     pub fn load_predefined(&mut self) {

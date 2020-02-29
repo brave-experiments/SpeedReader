@@ -69,6 +69,18 @@ pub extern "C" fn speedreader_new() -> *mut SpeedReader {
     to_ptr_mut(SpeedReader::new())
 }
 
+/// New instance of SpeedReader using deserialized whitelist
+#[no_mangle]
+pub extern "C" fn speedreader_with_whitelist(
+    whitelist_data: *const c_char,
+    whitelist_data_size: size_t,
+) -> *mut SpeedReader {
+    let whitelist_data: &[u8] =
+        unsafe { std::slice::from_raw_parts(whitelist_data as *const u8, whitelist_data_size) };
+    let whitelist = unwrap_or_ret_null! { whitelist::Whitelist::deserialize(whitelist_data) };
+    to_ptr_mut(SpeedReader::with_whitelist(whitelist))
+}
+
 /// Checks if the provided URL matches whitelisted readable URLs.
 #[no_mangle]
 pub extern "C" fn speedreader_url_readable(
@@ -89,7 +101,7 @@ pub extern "C" fn speedreader_find_type(
     url: *const c_char,
     url_len: size_t,
 ) -> CRewriterType {
-    let url = unwrap_or_ret! { to_str!(url, url_len), CRewriterType::RewriterUnknown};
+    let url = unwrap_or_ret! { to_str!(url, url_len), CRewriterType::RewriterUnknown };
     let speedreader = to_ref!(speedreader);
     let rewriter_type = speedreader.get_rewriter_type(url);
     CRewriterType::from(rewriter_type)
@@ -97,6 +109,7 @@ pub extern "C" fn speedreader_find_type(
 
 #[no_mangle]
 pub extern "C" fn speedreader_free(speedreader: *mut SpeedReader) {
+    assert_not_null!(speedreader);
     drop(to_box!(speedreader));
 }
 

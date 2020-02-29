@@ -2,6 +2,7 @@ use lol_html::Selector;
 use std::any::Any;
 use thiserror::Error;
 use url::Url;
+use serde::{Deserialize, Serialize};
 
 pub use lol_html::OutputSink;
 
@@ -20,6 +21,10 @@ pub enum SpeedReaderError {
     RewritingError(String),
     #[error("Configuration error: `{0}`")]
     ConfigurationError(String),
+    #[error("Serialization error: `{0}`")]
+    SerializationError(String),
+    #[error("Deserialization error: `{0}`")]
+    DeserializationError(String),
 }
 
 impl From<lol_html::errors::RewritingError> for SpeedReaderError {
@@ -43,6 +48,18 @@ impl From<url::ParseError> for SpeedReaderError {
 impl From<std::io::Error> for SpeedReaderError {
     fn from(err: std::io::Error) -> Self {
         SpeedReaderError::DocumentParseError(err.to_string())
+    }
+}
+
+impl From<rmps::decode::Error> for SpeedReaderError {
+    fn from(err: rmps::decode::Error) -> Self {
+        SpeedReaderError::DeserializationError(err.to_string())
+    }
+}
+
+impl From<rmps::encode::Error> for SpeedReaderError {
+    fn from(err: rmps::encode::Error) -> Self {
+        SpeedReaderError::SerializationError(err.to_string())
     }
 }
 
@@ -70,14 +87,14 @@ pub trait SpeedReaderProcessor {
     fn rewriter_type(&self) -> RewriterType;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SpeedReaderConfig {
     pub domain: String,
     pub url_rules: Vec<String>,
     pub declarative_rewrite: Option<RewriteRules>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AttributeRewrite {
     pub selector: String,
     pub attribute: String,
@@ -85,7 +102,7 @@ pub struct AttributeRewrite {
     pub element_name: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RewriteRules {
     pub main_content: Vec<String>,
     pub main_content_cleanup: Vec<String>,

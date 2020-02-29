@@ -72,6 +72,10 @@ bool speedreader_url_readable(C_SpeedReader *speedreader,
                               const char *url,
                               size_t url_len);
 
+/// New instance of SpeedReader using deserialized whitelist
+C_SpeedReader *speedreader_with_whitelist(const char *whitelist_data,
+                                          size_t whitelist_data_size);
+
 } // extern "C"
 
 } // namespace speedreader_ffi

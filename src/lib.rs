@@ -9,6 +9,8 @@ extern crate adblock;
 #[macro_use]
 extern crate matches;
 
+extern crate rmp_serde as rmps;   // binary serialization/deserialization
+
 pub mod classifier;
 pub mod speedreader;
 mod rewriter_config_builder;
