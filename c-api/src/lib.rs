@@ -4,11 +4,6 @@ use std::cell::RefCell;
 use std::{ptr, slice, str};
 
 #[inline]
-fn to_ptr<T>(val: T) -> *const T {
-    Box::into_raw(Box::new(val))
-}
-
-#[inline]
 fn to_ptr_mut<T>(val: T) -> *mut T {
     Box::into_raw(Box::new(val))
 }

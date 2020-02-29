@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../../include/speedreader.h"
+#include "../../include/speedreader_ffi.hpp"
 #include "deps/picotest/picotest.h"
 
 using namespace speedreader_ffi;
@@ -74,26 +74,26 @@ void test_find_type() {
 
 void test_rewriter_chunks(C_SpeedReader* speedreader) {
   const char* url_str = "https://cnn.com/news/article/topic/index.html";
-  C_CSpeedReaderProcessor* rewriter =
-      speedreader_get_rewriter(speedreader, url_str, strlen(url_str),
+  C_CSpeedReaderRewriter* rewriter =
+      speedreader_rewriter_new(speedreader, url_str, strlen(url_str),
                                output_sink_print, C_CRewriterType::RewriterUnknown);
   const char* content1 = "<html><div class=\"pg-headline\">";
-  ok(speedreader_processor_write(rewriter, content1, strlen(content1)) == 0);
+  ok(speedreader_rewriter_write(rewriter, content1, strlen(content1)) == 0);
   const char* content2 = "hello world</div></html>";
-  ok(speedreader_processor_write(rewriter, content2, strlen(content2)) == 0);
-  ok(speedreader_processor_end(rewriter) == 0);
+  ok(speedreader_rewriter_write(rewriter, content2, strlen(content2)) == 0);
+  ok(speedreader_rewriter_end(rewriter) == 0);
 }
 
 void test_rewriter_indirection(C_SpeedReader* speedreader) {
   const char* url_str = "https://cnn.com/news/article/topic/index.html";
-  C_CSpeedReaderProcessor* rewriter =
-      speedreader_get_rewriter(speedreader, url_str, strlen(url_str),
+  C_CSpeedReaderRewriter* rewriter =
+      speedreader_rewriter_new(speedreader, url_str, strlen(url_str),
                                output_sink_print, C_CRewriterType::RewriterUnknown);
   const char* content1 = "<html><div class=\"pg-headline\">";
-  ok(speedreader_processor_write(rewriter, content1, strlen(content1)) == 0);
+  ok(speedreader_rewriter_write(rewriter, content1, strlen(content1)) == 0);
   const char* content2 = "hello world</div></html>";
-  ok(speedreader_processor_write(rewriter, content2, strlen(content2)) == 0);
-  ok(speedreader_processor_end(rewriter) == 0);
+  ok(speedreader_rewriter_write(rewriter, content2, strlen(content2)) == 0);
+  ok(speedreader_rewriter_end(rewriter) == 0);
 }
 
 void test_rewriter() {

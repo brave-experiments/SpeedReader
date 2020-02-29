@@ -2,7 +2,7 @@
 language = "C++"
 
 # Options for Wrapping the Contents of the Header
-include_guard = "SPEEDREADER_RUST_FFI_H"
+include_guard = "SPEEDREADER_FFI_H"
 namespace = "speedreader_ffi"
 
 # Code Stylr Options
@@ -21,7 +21,6 @@ include = ["speedreader"]
 [parse.expand]
 # A list of crate names that should be run through `cargo expand` before
 # parsing to expand any macros
-# crates = ["speedreader-ffi"]
 crates = []
 all_features = false
 default_features = false
