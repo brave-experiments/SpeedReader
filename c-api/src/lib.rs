@@ -1,5 +1,5 @@
-use libc::{c_char, c_int, size_t};
 use ::speedreader::*;
+use libc::{c_char, c_int, size_t};
 use std::cell::RefCell;
 use std::{ptr, slice, str};
 

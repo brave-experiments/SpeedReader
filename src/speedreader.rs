@@ -172,7 +172,7 @@ impl SpeedReader {
         let config = self
             .whitelist
             .get_configuration(&url.domain().unwrap_or_default());
-        
+
         println!("Found config {:?}", config);
 
         match config {

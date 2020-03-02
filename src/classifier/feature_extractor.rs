@@ -1,4 +1,3 @@
-
 use html5ever::driver::{ParseOpts, Parser};
 use html5ever::rcdom::Handle;
 use html5ever::rcdom::NodeData;

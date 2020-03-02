@@ -36,23 +36,23 @@ impl<'h, O: OutputSink> SpeedReaderStreaming<'h, O> {
     pub fn try_new(
         url: Url,
         output_sink: O,
-        config: &'h[(Selector, ContentFunction)],
+        config: &'h [(Selector, ContentFunction)],
     ) -> Result<Self, SpeedReaderError> {
         let mut whitelist = Whitelist::default();
         whitelist.load_predefined();
         let rewriter = HtmlRewriter::try_new(
             Settings {
                 element_content_handlers: content_handlers(config),
-                document_content_handlers: vec![doc_comments!(|el| { el.remove(); Ok(()) })],
+                document_content_handlers: vec![doc_comments!(|el| {
+                    el.remove();
+                    Ok(())
+                })],
                 ..Settings::default()
             },
             output_sink,
         )?;
 
-        let sr = SpeedReaderStreaming {
-            url,
-            rewriter,
-        };
+        let sr = SpeedReaderStreaming { url, rewriter };
 
         Ok(sr)
     }

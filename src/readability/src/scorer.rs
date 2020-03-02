@@ -142,10 +142,7 @@ pub fn calc_content_score(handle: &Handle) -> f32 {
 
 pub fn get_class_weight(handle: &Handle) -> f32 {
     let mut weight: f32 = 0.0;
-    if let Element {
-        ref attrs, ..
-    } = handle.data
-    {
+    if let Element { ref attrs, .. } = handle.data {
         for name in ["id", "class"].iter() {
             if let Some(val) = dom::attr(name, &attrs.borrow()) {
                 if val == "" {

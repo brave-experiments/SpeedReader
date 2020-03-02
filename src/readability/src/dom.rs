@@ -14,9 +14,7 @@ pub fn get_tag_name(handle: &Handle) -> Option<String> {
 
 pub fn get_attr(name: &str, handle: &Handle) -> Option<String> {
     match handle.data {
-        Element {
-            ref attrs, ..
-        } => attr(name, &attrs.borrow()),
+        Element { ref attrs, .. } => attr(name, &attrs.borrow()),
         _ => None,
     }
 }
@@ -31,10 +29,7 @@ pub fn attr(attr_name: &str, attrs: &[Attribute]) -> Option<String> {
 }
 
 pub fn set_attr(attr_name: &str, value: &str, handle: Handle) {
-    if let Element {
-        ref attrs, ..
-    } = handle.data
-    {
+    if let Element { ref attrs, .. } = handle.data {
         let attrs = &mut attrs.borrow_mut();
         if let Some(index) = attrs.iter().position(|attr| {
             let name = attr.name.local.as_ref();

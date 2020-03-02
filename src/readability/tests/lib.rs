@@ -8,7 +8,7 @@ use url::Url;
 
 static SAMPLES_PATH: &str = "./tests/samples/";
 
-fn load_test_files(test_name: &str) -> String{
+fn load_test_files(test_name: &str) -> String {
     let mut expected = "".to_owned();
     let mut exp_f = File::open(format!("{}/{}/expected.html", SAMPLES_PATH, test_name)).unwrap();
     exp_f.read_to_string(&mut expected).unwrap();
@@ -24,14 +24,17 @@ mod test {
             #[test]
             fn $name() {
                 let url = Url::parse("http://url.com").unwrap();
-                let mut source_f =
-                    File::open(format!("{}/{}/source.html", SAMPLES_PATH, stringify!($name)))
-                    .unwrap();
-                
-                 let expected_string = load_test_files(stringify!($name));
-                 let product = extract(&mut source_f, &url).unwrap();
+                let mut source_f = File::open(format!(
+                    "{}/{}/source.html",
+                    SAMPLES_PATH,
+                    stringify!($name)
+                ))
+                .unwrap();
 
-                 assert_eq!(expected_string, product.content);
+                let expected_string = load_test_files(stringify!($name));
+                let product = extract(&mut source_f, &url).unwrap();
+
+                assert_eq!(expected_string, product.content);
             }
         };
     }
@@ -127,4 +130,3 @@ test!(guardian_1);
 //test!(yahoo_3);
 //test!(yahoo_4);
 //test!(youth);
-

@@ -1,6 +1,5 @@
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-
+use std::collections::HashMap;
 
 use crate::speedreader::{AttributeRewrite, RewriteRules, SpeedReaderConfig, SpeedReaderError};
 
@@ -24,7 +23,7 @@ impl Whitelist {
 
     pub fn get_configuration(&self, domain: &str) -> Option<&SpeedReaderConfig> {
         if let Some(config) = self.map.get(domain) {
-            return Some(config)
+            return Some(config);
         }
 
         for (i, c) in domain[..domain.len() - 2].char_indices() {
@@ -32,7 +31,7 @@ impl Whitelist {
                 let subdomain = &domain[i + 1..];
                 let maybe_config = self.map.get(subdomain);
                 if maybe_config.is_some() {
-                    return maybe_config
+                    return maybe_config;
                 }
             }
         }
@@ -373,9 +372,7 @@ impl Whitelist {
 
         self.add_configuration(SpeedReaderConfig {
             domain: "usatoday.com".to_owned(),
-            url_rules: vec![
-                r#"||usatoday.com/story/*"#.to_owned(),
-            ],
+            url_rules: vec![r#"||usatoday.com/story/*"#.to_owned()],
             declarative_rewrite: Some(RewriteRules {
                 main_content: vec!["article".to_owned(), ".article-wrapper".to_owned()],
                 main_content_cleanup: vec![
@@ -650,7 +647,6 @@ impl Whitelist {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -706,9 +702,7 @@ mod test {
         });
         whitelist.add_configuration(SpeedReaderConfig {
             domain: "example.net".to_owned(),
-            url_rules: vec![
-                r#"||example.net/article"#.to_owned(),
-            ],
+            url_rules: vec![r#"||example.net/article"#.to_owned()],
             declarative_rewrite: None,
         });
         let rules = whitelist.get_url_rules();
@@ -728,14 +722,15 @@ mod test {
         });
         whitelist.add_configuration(SpeedReaderConfig {
             domain: "example.com".to_owned(),
-            url_rules: vec![
-                r#"||example.com/news"#.to_owned(),
-            ],
+            url_rules: vec![r#"||example.com/news"#.to_owned()],
             declarative_rewrite: None,
         });
         assert_eq!(whitelist.map.len(), 1);
         let config = whitelist.get_configuration("example.com");
         assert!(config.is_some());
-        assert_eq!(config.unwrap().url_rules, vec!["||example.com/news".to_owned()]);
+        assert_eq!(
+            config.unwrap().url_rules,
+            vec!["||example.com/news".to_owned()]
+        );
     }
 }
