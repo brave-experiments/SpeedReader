@@ -1,8 +1,8 @@
 use lol_html::Selector;
+use serde::{Deserialize, Serialize};
 use std::any::Any;
 use thiserror::Error;
 use url::Url;
-use serde::{Deserialize, Serialize};
 
 pub use lol_html::OutputSink;
 
@@ -68,7 +68,7 @@ impl From<rmps::encode::Error> for SpeedReaderError {
 pub enum RewriterType {
     Streaming = 0,
     Heuristics = 1,
-    Unknown = 2
+    Unknown = 2,
 }
 
 impl From<u8> for RewriterType {
@@ -76,7 +76,7 @@ impl From<u8> for RewriterType {
         match r_type {
             0 => RewriterType::Streaming,
             1 => RewriterType::Heuristics,
-            _ => RewriterType::Unknown
+            _ => RewriterType::Unknown,
         }
     }
 }
@@ -135,8 +135,8 @@ pub struct SpeedReader {
     url_engine: adblock::engine::Engine,
 }
 
-impl SpeedReader {
-    pub fn new() -> Self {
+impl Default for SpeedReader {
+    fn default() -> Self {
         let mut whitelist = Whitelist::default();
         whitelist.load_predefined();
         let url_engine = adblock::engine::Engine::from_rules(&whitelist.get_url_rules());
@@ -145,7 +145,9 @@ impl SpeedReader {
             url_engine,
         }
     }
+}
 
+impl SpeedReader {
     pub fn with_whitelist(whitelist: Whitelist) -> Self {
         let url_engine = adblock::engine::Engine::from_rules(&whitelist.get_url_rules());
         SpeedReader {
@@ -170,15 +172,16 @@ impl SpeedReader {
         let config = self
             .whitelist
             .get_configuration(&url.domain().unwrap_or_default());
+        
+        println!("Found config {:?}", config);
 
         match config {
             Some(SpeedReaderConfig {
-                domain: _,
-                url_rules: _,
                 declarative_rewrite: Some(_),
+                ..
             }) => RewriterType::Streaming,
             Some(_) => RewriterType::Heuristics,
-            None => RewriterType::Unknown
+            None => RewriterType::Unknown,
         }
     }
 
@@ -191,11 +194,10 @@ impl SpeedReader {
         let content_handlers: Vec<(Selector, ContentFunction)> = vec![];
         match config {
             Some(SpeedReaderConfig {
-                domain: _,
-                url_rules: _,
                 declarative_rewrite: Some(rewrite),
+                ..
             }) => Box::new(rewrite.get_content_handlers(&url)),
-            _ => Box::new(content_handlers)
+            _ => Box::new(content_handlers),
         }
     }
 
@@ -209,7 +211,7 @@ impl SpeedReader {
         let url = Url::parse(article_url).unwrap();
         let rewriter_decided = match rewriter_type {
             Some(r_type) => r_type,
-            None => self.get_rewriter_type(article_url)
+            None => self.get_rewriter_type(article_url),
         };
 
         if let Some(content_handlers) = extra.downcast_ref::<Vec<(Selector, ContentFunction)>>() {
@@ -334,7 +336,7 @@ mod test {
         let sr = SpeedReader::with_whitelist(get_whitelist());
         let article = "http://example.net/article/today";
         let config = sr.get_rewriter_type(article);
-        assert_eq!(config, RewriterType::Heuristics);
+        assert_eq!(config, RewriterType::Streaming);
         let opaque = sr.get_opaque_config(article);
         let maybe_rewriter = sr.get_rewriter(article, &opaque, |_: &[u8]| {}, Some(config));
         assert!(maybe_rewriter.is_ok());

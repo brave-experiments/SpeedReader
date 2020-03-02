@@ -1,5 +1,5 @@
 use lol_html::OutputSink;
-use readability;
+
 use std::borrow::Borrow;
 use std::cell::RefCell;
 use url::Url;
@@ -20,11 +20,10 @@ where
 
 impl<O: OutputSink> SpeedReaderProcessor for SpeedReaderHeuristics<O> {
     fn write(&mut self, input: &[u8]) -> Result<(), SpeedReaderError> {
-        if self.document_readable() != Some(false) {
-            match self.streamer.write(&mut input.borrow()) {
-                Err(_) => *self.readable.borrow_mut() = Some(false),
-                _ => (),
-            }
+        if self.document_readable() != Some(false)
+            && self.streamer.write(&mut input.borrow()).is_err()
+        {
+            *self.readable.borrow_mut() = Some(false)
         }
         // else NOOP - already decided the doc is not readable
         Ok(())

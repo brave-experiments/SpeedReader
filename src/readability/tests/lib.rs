@@ -6,14 +6,14 @@ use std::fs::File;
 use std::io::Read;
 use url::Url;
 
-static SAMPLES_PATH: &'static str = "./tests/samples/";
+static SAMPLES_PATH: &str = "./tests/samples/";
 
 fn load_test_files(test_name: &str) -> String{
     let mut expected = "".to_owned();
     let mut exp_f = File::open(format!("{}/{}/expected.html", SAMPLES_PATH, test_name)).unwrap();
     exp_f.read_to_string(&mut expected).unwrap();
 
-    expected.to_owned()
+    expected
 }
 
 #[macro_use]
@@ -29,7 +29,6 @@ mod test {
                     .unwrap();
                 
                  let expected_string = load_test_files(stringify!($name));
-                 let expected = 
                  let product = extract(&mut source_f, &url).unwrap();
 
                  assert_eq!(expected_string, product.content);

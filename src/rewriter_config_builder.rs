@@ -46,10 +46,10 @@ pub fn rewrite_rules_to_content_handlers(
             &mut element_content_handlers,
             &attr_rewrite.selector,
             Box::new(move |el| {
-                el.get_attribute(&rewrite.attribute).map(|attr_value| {
+                if let Some(attr_value) = el.get_attribute(&rewrite.attribute) {
                     el.set_attribute(&rewrite.to_attribute, &attr_value)
                         .unwrap_or(());
-                });
+                }
                 el.set_tag_name(&rewrite.element_name)?;
                 Ok(())
             }),
@@ -70,7 +70,7 @@ pub fn rewrite_rules_to_content_handlers(
     correct_relative_links(&mut element_content_handlers, origin.to_owned());
 
     let maybe_script = conf.content_script.clone();
-    maybe_script.map(|script| {
+    if let Some(script) = maybe_script {
         add_element_function(
             &mut element_content_handlers,
             "body",
@@ -79,13 +79,13 @@ pub fn rewrite_rules_to_content_handlers(
                 Ok(())
             }),
         )
-    });
+    };
 
     element_content_handlers
 }
 
 pub fn content_handlers<'h>(
-    handlers: &'h Vec<(Selector, ContentFunction)>,
+    handlers: &'h [(Selector, ContentFunction)],
 ) -> Vec<(&Selector, ElementContentHandlers<'h>)> {
     handlers
         .iter()
@@ -94,7 +94,7 @@ pub fn content_handlers<'h>(
 }
 
 #[inline]
-fn get_content_handlers<'h>(function: &'h ContentFunction) -> ElementContentHandlers<'h> {
+fn get_content_handlers(function: &ContentFunction) -> ElementContentHandlers<'_> {
     if function.element.is_some() {
         ElementContentHandlers::default().element(function.element.as_ref().unwrap())
     } else if function.text.is_some() {
@@ -148,7 +148,14 @@ fn collect_main_content(
     });
 
     cleanup_selectors.iter().for_each(|selector| {
-        add_element_function(handlers, selector, Box::new(|el| Ok(el.remove())));
+        add_element_function(
+            handlers,
+            selector,
+            Box::new(|el| {
+                el.remove();
+                Ok(())
+            }),
+        );
     });
 
     // Drop everything else
@@ -157,7 +164,10 @@ fn collect_main_content(
     add_element_function(
         handlers,
         "[style]",
-        Box::new(|el| Ok(el.remove_attribute("style"))),
+        Box::new(|el| {
+            el.remove_attribute("style");
+            Ok(())
+        }),
     );
 }
 
@@ -177,7 +187,6 @@ fn correct_relative_links(handlers: &mut Vec<(Selector, ContentFunction)>, origi
             Ok(())
         }),
     );
-    let src_origin = origin.clone();
     add_element_function(
         handlers,
         "img[src]",
@@ -185,7 +194,7 @@ fn correct_relative_links(handlers: &mut Vec<(Selector, ContentFunction)>, origi
             let src = el.get_attribute("src").expect("src was required");
 
             if !src.starts_with("http") {
-                el.set_attribute("src", &format!("{}{}", src_origin, src))?;
+                el.set_attribute("src", &format!("{}{}", origin, src))?;
             }
 
             Ok(())
@@ -199,9 +208,9 @@ fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
         handlers,
         "[data-src]",
         Box::new(|el| {
-            el.get_attribute("data-src").map(|src| {
+            if let Some(src) = el.get_attribute("data-src") {
                 el.set_attribute("src", &src).ok();
-            });
+            }
             Ok(())
         }),
     );
@@ -209,9 +218,9 @@ fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
         handlers,
         "[data-srcset]",
         Box::new(|el| {
-            el.get_attribute("data-srcset").map(|srcset| {
+            if let Some(srcset) = el.get_attribute("data-srcset") {
                 el.set_attribute("srcset", &srcset).ok();
-            });
+            }
             Ok(())
         }),
     );
@@ -219,9 +228,9 @@ fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
         handlers,
         "[data-original]",
         Box::new(|el| {
-            el.get_attribute("data-original").map(|original| {
+            if let Some(original) = el.get_attribute("data-original") {
                 el.set_attribute("src", &original).ok();
-            });
+            }
             Ok(())
         }),
     );
@@ -229,9 +238,9 @@ fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
         handlers,
         "img[data-src-medium]",
         Box::new(|el| {
-            el.get_attribute("data-src-medium").map(|original| {
+            if let Some(original) = el.get_attribute("data-src-medium") {
                 el.set_attribute("src", &original).ok();
-            });
+            }
             Ok(())
         }),
     );
@@ -239,9 +248,9 @@ fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
         handlers,
         "img[data-raw-src]",
         Box::new(|el| {
-            el.get_attribute("data-raw-src").map(|original| {
+            if let Some(original) = el.get_attribute("data-raw-src") {
                 el.set_attribute("src", &original).ok();
-            });
+            }
             Ok(())
         }),
     );
@@ -249,9 +258,9 @@ fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
         handlers,
         "img[data-gl-src]",
         Box::new(|el| {
-            el.get_attribute("data-gl-src").map(|original| {
+            if let Some(original) = el.get_attribute("data-gl-src") {
                 el.set_attribute("src", &original).ok();
-            });
+            }
             Ok(())
         }),
     );
@@ -285,19 +294,22 @@ fn fix_social_embeds(handlers: &mut Vec<(Selector, ContentFunction)>) {
 
 #[inline]
 fn mark_retained_element(el: &mut Element) -> HandlerResult {
-    Ok(el.set_user_data(true))
+    el.set_user_data(true);
+    Ok(())
 }
 
 #[inline]
 fn mark_retained_text(t: &mut TextChunk) -> HandlerResult {
-    Ok(t.set_user_data(true))
+    t.set_user_data(true);
+    Ok(())
 }
 
 #[inline]
 fn remove_unmarked_text(t: &mut TextChunk) -> HandlerResult {
     let user_data = t.user_data_mut().downcast_ref::<bool>();
     if user_data != Some(&true) {
-        Ok(t.remove())
+        t.remove();
+        Ok(())
     } else {
         Ok(())
     }
@@ -307,7 +319,8 @@ fn remove_unmarked_text(t: &mut TextChunk) -> HandlerResult {
 fn unwrap_unmarked_element(el: &mut Element) -> HandlerResult {
     let user_data = el.user_data_mut().downcast_ref::<bool>();
     if user_data != Some(&true) {
-        Ok(el.remove_and_keep_content())
+        el.remove_and_keep_content();
+        Ok(())
     } else {
         Ok(())
     }

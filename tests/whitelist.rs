@@ -9,6 +9,6 @@ mod test {
         let serialized = whitelist.serialize();
         assert!(serialized.is_ok());
         let serialized = serialized.unwrap();
-        assert!(serialized.len() > 0);
+        assert!(!serialized.is_empty());
     }
 }

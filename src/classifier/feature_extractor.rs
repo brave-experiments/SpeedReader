@@ -1,4 +1,4 @@
-use html5ever;
+
 use html5ever::driver::{ParseOpts, Parser};
 use html5ever::rcdom::Handle;
 use html5ever::rcdom::NodeData;
@@ -67,7 +67,7 @@ impl Clone for FeaturisingTreeSink {
         let cloned_r = RcDom {
             document: self.rcdom.document.clone(),
             errors: self.rcdom.errors.clone(),
-            quirks_mode: self.rcdom.quirks_mode.clone(),
+            quirks_mode: self.rcdom.quirks_mode,
         };
 
         FeaturisingTreeSink {

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use rmps;
+
 
 use crate::speedreader::{AttributeRewrite, RewriteRules, SpeedReaderConfig, SpeedReaderError};
 
@@ -18,7 +18,7 @@ impl Default for Whitelist {
 }
 
 impl Whitelist {
-    pub fn add_configuration(&mut self, config: SpeedReaderConfig) -> () {
+    pub fn add_configuration(&mut self, config: SpeedReaderConfig) {
         self.map.insert(config.domain.clone(), config);
     }
 
@@ -37,7 +37,7 @@ impl Whitelist {
             }
         }
 
-        return None
+        None
     }
 
     pub fn get_url_rules(&self) -> Vec<String> {

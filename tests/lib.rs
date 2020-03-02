@@ -17,7 +17,7 @@ use html5ever::rcdom::{Node, Handle};
 use html5ever::rcdom::NodeData::{Element, Text};
 use distance::damerau_levenshtein;
 
-static SAMPLES_PATH: &'static str = "./tests/samples/";
+static SAMPLES_PATH: &str = "./tests/samples/";
 
 
 pub fn extract_flattened_tree(handle: Handle, tags_attrs: Vec<(&str, &str)>, 
@@ -73,22 +73,18 @@ fn stripped_content(handle: Handle, tag_name: &str, attr_name: &str, nodes: &mut
                     values: &mut Vec<String>) {
 
     for child in handle.children.borrow().iter() {
-        let c = child.clone();
-        match c.data {
-            Element { ref name, ref attrs, .. } => {
-                let t = name.local.as_ref();
-                if t.to_lowercase() == tag_name {
-                    nodes.push(child.clone());
-                    
-                    for attr in attrs.borrow().iter() {
-                        if attr.name.local.as_ref() == attr_name.clone() {
-                            values.push(attr.value.to_string());
-                        }
-                    } 
-                };
-                stripped_content(child.clone(), tag_name.clone(), attr_name.clone(), nodes, values);
-            },
-            _ => ()
+        if let Element { ref name, ref attrs, .. } = child.data {
+            let t = name.local.as_ref();
+            if t.to_lowercase() == tag_name {
+                nodes.push(child.clone());
+                
+                for attr in attrs.borrow().iter() {
+                    if attr.name.local.as_ref() == attr_name {
+                        values.push(attr.value.to_string());
+                    }
+                } 
+            };
+            stripped_content(child.clone(), tag_name, attr_name, nodes, values);
         }
     }
 }
@@ -113,7 +109,7 @@ fn tags_match_approx(d1: Handle, d2: Handle, tag_name: &str, attr_name: &str, ap
     for (i, _) in values_d1.clone().iter().enumerate() {
         if values_d2.len() > i && values_d1[i] != values_d2[i] {
             approx_counter -= 1;  
-            if approx_counter <= 0 {
+            if approx_counter == 0 {
                 return false;
             }
         } 
@@ -150,7 +146,7 @@ fn load_test_files(test_name: &str) -> String{
     let mut exp_f = File::open(format!("{}/{}/expected.html", SAMPLES_PATH, test_name)).unwrap();
     exp_f.read_to_string(&mut expected).unwrap();
 
-    expected.to_owned()
+    expected
 }
 
 #[macro_use]
