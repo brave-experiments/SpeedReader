@@ -620,7 +620,7 @@ impl Whitelist {
             url_rules: vec![],
             declarative_rewrite: Some(RewriteRules {
                 main_content: vec![
-                    ".post-headline".to_owned(),
+                    ".post-headline:nth".to_owned(),
                     ".byline-wrapper".to_owned(),
                     "#l-content".to_owned(),
                     ".container figure".to_owned(),

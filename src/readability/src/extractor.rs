@@ -1,4 +1,3 @@
-use error::Error;
 use html5ever::rcdom::RcDom;
 use html5ever::tendril::TendrilSink;
 use html5ever::{parse_document, serialize};
@@ -18,14 +17,13 @@ pub struct Product {
     pub content: String,
 }
 
-pub fn extract<R>(input: &mut R, url: &Url) -> Result<Product, Error>
+pub fn extract<R>(input: &mut R, url: &Url) -> Result<Product, std::io::Error>
 where
     R: Read,
 {
     let mut dom = parse_document(RcDom::default(), Default::default())
         .from_utf8()
-        .read_from(input)
-        .unwrap();
+        .read_from(input)?;
 
     extract_dom(&mut dom, url, &HashMap::new())
 }
@@ -34,7 +32,7 @@ pub fn extract_dom<S: ::std::hash::BuildHasher>(
     mut dom: &mut RcDom,
     url: &Url,
     features: &HashMap<String, u32, S>,
-) -> Result<Product, Error> {
+) -> Result<Product, std::io::Error> {
     let mut title = String::new();
     let mut candidates = BTreeMap::new();
     let mut nodes = BTreeMap::new();
@@ -87,7 +85,7 @@ pub fn extract_dom<S: ::std::hash::BuildHasher>(
         &candidates,
     );
 
-    serialize(&mut bytes, &top_candidate.node, Default::default()).ok();
+    serialize(&mut bytes, &top_candidate.node, Default::default())?;
     let content = String::from_utf8(bytes).unwrap_or_default();
 
     Ok(Product { title, content })

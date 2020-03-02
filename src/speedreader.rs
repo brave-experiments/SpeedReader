@@ -10,6 +10,7 @@ use super::rewriter_config_builder::*;
 use super::speedreader_heuristics::SpeedReaderHeuristics;
 use super::speedreader_streaming::SpeedReaderStreaming;
 use super::whitelist::Whitelist;
+use lol_html::errors::SelectorError;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum SpeedReaderError {
@@ -25,6 +26,10 @@ pub enum SpeedReaderError {
     SerializationError(String),
     #[error("Deserialization error: `{0}`")]
     DeserializationError(String),
+    #[error("Bad URL: `{0}`")]
+    BadURL(String),
+    #[error("Selector Error: `{0}` - {1}")]
+    SelectorError(String, SelectorError),
 }
 
 impl From<lol_html::errors::RewritingError> for SpeedReaderError {
@@ -168,36 +173,39 @@ impl SpeedReader {
     }
 
     pub fn get_rewriter_type(&self, article_url: &str) -> RewriterType {
-        let url = Url::parse(article_url).unwrap();
-        let config = self
-            .whitelist
-            .get_configuration(&url.domain().unwrap_or_default());
+        if let Ok(url) = Url::parse(article_url) {
+            let config = self
+                .whitelist
+                .get_configuration(&url.domain().unwrap_or_default());
 
-        println!("Found config {:?}", config);
-
-        match config {
-            Some(SpeedReaderConfig {
-                declarative_rewrite: Some(_),
-                ..
-            }) => RewriterType::Streaming,
-            Some(_) => RewriterType::Heuristics,
-            None => RewriterType::Unknown,
+            match config {
+                Some(SpeedReaderConfig {
+                    declarative_rewrite: Some(_),
+                    ..
+                }) => RewriterType::Streaming,
+                Some(_) => RewriterType::Heuristics,
+                None => RewriterType::Unknown,
+            }
+        } else {
+            RewriterType::Unknown
         }
     }
 
     pub fn get_opaque_config(&self, article_url: &str) -> Box<dyn Any> {
-        let url = Url::parse(article_url).unwrap();
-        let config = self
-            .whitelist
-            .get_configuration(&url.domain().unwrap_or_default());
+        if let Ok(url) = Url::parse(article_url) {
+            let config = self
+                .whitelist
+                .get_configuration(&url.domain().unwrap_or_default());
 
-        let content_handlers: Vec<(Selector, ContentFunction)> = vec![];
-        match config {
-            Some(SpeedReaderConfig {
-                declarative_rewrite: Some(rewrite),
-                ..
-            }) => Box::new(rewrite.get_content_handlers(&url)),
-            _ => Box::new(content_handlers),
+            match config {
+                Some(SpeedReaderConfig {
+                    declarative_rewrite: Some(rewrite),
+                    ..
+                }) => Box::new(rewrite.get_content_handlers(&url)),
+                _ => Box::new(Vec::<(Selector, ContentFunction)>::new()),
+            }
+        } else {
+            Box::new(Vec::<(Selector, ContentFunction)>::new())
         }
     }
 
@@ -208,29 +216,32 @@ impl SpeedReader {
         output_sink: O,
         rewriter_type: Option<RewriterType>,
     ) -> Result<Box<dyn SpeedReaderProcessor + 'h>, SpeedReaderError> {
-        let url = Url::parse(article_url).unwrap();
-        let rewriter_decided = match rewriter_type {
-            Some(r_type) => r_type,
-            None => self.get_rewriter_type(article_url),
-        };
+        if let Ok(url) = Url::parse(article_url) {
+            let rewriter_decided = match rewriter_type {
+                Some(r_type) => r_type,
+                None => self.get_rewriter_type(article_url),
+            };
 
-        if let Some(content_handlers) = extra.downcast_ref::<Vec<(Selector, ContentFunction)>>() {
-            match rewriter_decided {
-                RewriterType::Streaming => Ok(Box::new(SpeedReaderStreaming::try_new(
-                    url,
-                    output_sink,
-                    content_handlers,
-                )?)),
-                _ => Ok(Box::new(SpeedReaderHeuristics::try_new(
-                    url.as_str(),
-                    output_sink,
-                )?)),
+            if let Some(content_handlers) = extra.downcast_ref::<Vec<(Selector, ContentFunction)>>()
+            {
+                match rewriter_decided {
+                    RewriterType::Streaming => Ok(Box::new(SpeedReaderStreaming::try_new(
+                        url,
+                        output_sink,
+                        content_handlers,
+                    )?)),
+                    _ => Ok(Box::new(SpeedReaderHeuristics::try_new(
+                        url.as_str(),
+                        output_sink,
+                    )?)),
+                }
+            } else {
+                Err(SpeedReaderError::ConfigurationError(
+                "The configuration `extra` parameter could not be unmarshalled to expected type"
+                    .to_owned()))
             }
         } else {
-            Err(SpeedReaderError::ConfigurationError(
-                "The configuration `extra` parameter could not be unmarshalled to expected type"
-                    .to_owned(),
-            ))
+            Err(SpeedReaderError::BadURL(article_url.to_owned()))
         }
     }
 }

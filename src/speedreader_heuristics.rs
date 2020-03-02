@@ -8,6 +8,8 @@ use super::classifier::feature_extractor::{FeatureExtractorStreamer, Featurising
 use super::classifier::Classifier;
 use super::speedreader::*;
 
+use readability::extractor;
+
 pub struct SpeedReaderHeuristics<O>
 where
     O: OutputSink,
@@ -30,33 +32,33 @@ impl<O: OutputSink> SpeedReaderProcessor for SpeedReaderHeuristics<O> {
     }
 
     fn end(&mut self) -> Result<(), SpeedReaderError> {
-        // No valid URL - no document
-        if self.url.is_none() {
-            return Err(SpeedReaderError::InvalidUrl("".to_owned()));
-        }
-        // Already decided the document is not readable
-        if self.document_readable() == Some(false) {
-            return Err(SpeedReaderError::RewritingError(
-                "Not readable with heuristics".to_owned(),
-            ));
-        }
-        let url = self.url.as_ref().unwrap();
-        let (readable, maybe_doc) = process(self.streamer.end(), url);
+        if let Some(url) = self.url.as_ref() {
+            // Already decided the document is not readable
+            if self.document_readable() == Some(false) {
+                return Err(SpeedReaderError::RewritingError(
+                    "Not readable with heuristics".to_owned(),
+                ));
+            }
+            let (readable, maybe_doc) = process(self.streamer.end(), &url);
 
-        *self.readable.borrow_mut() = Some(readable);
-        if readable {
-            if let Some(doc) = maybe_doc {
-                self.output_sink.handle_chunk(doc.as_bytes());
-                Ok(())
+            *self.readable.borrow_mut() = Some(readable);
+            if readable {
+                if let Some(doc) = maybe_doc {
+                    self.output_sink.handle_chunk(doc.as_bytes());
+                    Ok(())
+                } else {
+                    Err(SpeedReaderError::RewritingError(
+                        "Failed to extract content with heuristics".to_owned(),
+                    ))
+                }
             } else {
                 Err(SpeedReaderError::RewritingError(
-                    "Failed to extract content with heuristics".to_owned(),
+                    "Not readable with heuristics".to_owned(),
                 ))
             }
         } else {
-            Err(SpeedReaderError::RewritingError(
-                "Not readable with heuristics".to_owned(),
-            ))
+            // No valid URL - no document
+            Err(SpeedReaderError::InvalidUrl("".to_owned()))
         }
     }
 
@@ -93,10 +95,10 @@ fn process(sink: &mut FeaturisingTreeSink, url: &Url) -> (bool, Option<String>) 
     let class = Classifier::from_feature_map(&sink.features).classify();
     if class == 0 {
         (false, None)
-    } else {
-        let extracted =
-            readability::extractor::extract_dom(&mut sink.rcdom, url, &sink.features).unwrap();
+    } else if let Ok(extracted) = extractor::extract_dom(&mut sink.rcdom, url, &sink.features) {
         (true, Some(extracted.content))
+    } else {
+        (false, None)
     }
 }
 

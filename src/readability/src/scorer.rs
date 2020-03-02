@@ -58,17 +58,22 @@ pub struct Candidate {
 }
 
 pub fn fix_img_path(handle: Handle, url: &Url) -> bool {
-    let src = dom::get_attr("src", &handle);
-    if src.is_none() {
-        return false;
-    }
-    let s = src.unwrap();
-    if !s.starts_with("//") && !s.starts_with("http://") && s.starts_with("https://") {
-        if let Ok(new_url) = url.join(&s) {
-            dom::set_attr("src", new_url.as_str(), handle)
+    if let Some(src) = dom::get_attr("src", &handle) {
+        if !src.starts_with("//") && !src.starts_with("http://") && src.starts_with("https://") {
+            if let Ok(new_url) = url.join(&src) {
+                dom::set_attr("src", new_url.as_str(), handle);
+                true
+            } else {
+                // failed to fix
+                false
+            }
+        } else {
+            // all OK
+            true
         }
+    } else {
+        false
     }
-    true
 }
 
 pub fn get_link_density(handle: &Handle) -> f32 {
@@ -277,10 +282,10 @@ pub fn find_candidates(
             let mut level = 2.0;
             for p in paths {
                 let add_score = score / (level * DECAY_FACTOR);
-                let c = find_or_create_candidate(p, candidates, nodes).unwrap();
-                c.score.set(c.score.get() + add_score);
-                //println!("{}, {:?}:: {}", level, p, c.score.get() );
-                level += 1.0;
+                if let Some(c) = find_or_create_candidate(p, candidates, nodes) {
+                    c.score.set(c.score.get() + add_score);
+                    level += 1.0;
+                }
             }
         }
     }

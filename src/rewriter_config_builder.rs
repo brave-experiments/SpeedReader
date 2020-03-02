@@ -4,6 +4,7 @@ use lol_html::Selector;
 use std::error::Error;
 
 use crate::speedreader::RewriteRules;
+use crate::speedreader::SpeedReaderError;
 
 pub type HandlerResult = Result<(), Box<dyn Error>>;
 pub type ElementHandler = Box<dyn Fn(&mut Element) -> HandlerResult>;
@@ -39,11 +40,13 @@ pub fn rewrite_rules_to_content_handlers(
     origin: &str,
 ) -> Vec<(Selector, ContentFunction)> {
     let mut element_content_handlers = vec![];
+    let mut errors = vec![];
 
     for attr_rewrite in &conf.preprocess {
         let rewrite = attr_rewrite.clone();
         add_element_function(
             &mut element_content_handlers,
+            &mut errors,
             &attr_rewrite.selector,
             Box::new(move |el| {
                 if let Some(attr_value) = el.get_attribute(&rewrite.attribute) {
@@ -58,28 +61,45 @@ pub fn rewrite_rules_to_content_handlers(
 
     collect_main_content(
         &mut element_content_handlers,
+        &mut errors,
         &conf.get_main_content_selectors(),
         &conf.get_content_cleanup_selectors(),
     );
     if conf.delazify {
-        delazify(&mut element_content_handlers);
+        delazify(&mut element_content_handlers, &mut errors);
     }
     if conf.fix_embeds {
-        fix_social_embeds(&mut element_content_handlers);
+        fix_social_embeds(&mut element_content_handlers, &mut errors);
     }
-    correct_relative_links(&mut element_content_handlers, origin.to_owned());
+    correct_relative_links(
+        &mut element_content_handlers,
+        &mut errors,
+        origin.to_owned(),
+    );
 
     let maybe_script = conf.content_script.clone();
     if let Some(script) = maybe_script {
         add_element_function(
             &mut element_content_handlers,
+            &mut errors,
             "body",
             Box::new(move |el| {
                 el.append(&script, ContentType::Html);
                 Ok(())
             }),
-        )
+        );
     };
+
+    if !errors.is_empty() {
+        eprintln!(
+            "Rewriter rules include invalid content selectors: {}",
+            errors
+                .iter()
+                .map(|e| e.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
 
     element_content_handlers
 }
@@ -95,10 +115,10 @@ pub fn content_handlers<'h>(
 
 #[inline]
 fn get_content_handlers(function: &ContentFunction) -> ElementContentHandlers<'_> {
-    if function.element.is_some() {
-        ElementContentHandlers::default().element(function.element.as_ref().unwrap())
-    } else if function.text.is_some() {
-        ElementContentHandlers::default().text(function.text.as_ref().unwrap())
+    if let Some(f_element) = function.element.as_ref() {
+        ElementContentHandlers::default().element(f_element)
+    } else if let Some(t_element) = function.text.as_ref() {
+        ElementContentHandlers::default().text(t_element)
     } else {
         ElementContentHandlers::default()
     }
@@ -107,41 +127,46 @@ fn get_content_handlers(function: &ContentFunction) -> ElementContentHandlers<'_
 #[inline]
 fn add_element_function(
     handlers: &mut Vec<(Selector, ContentFunction)>,
+    errors: &mut Vec<SpeedReaderError>,
     selector: &str,
     handler: ElementHandler,
 ) {
-    handlers.push((
-        selector.parse::<Selector>().unwrap(),
-        ContentFunction::from(handler),
-    ));
+    match selector.parse::<Selector>() {
+        Ok(selector) => handlers.push((selector, ContentFunction::from(handler))),
+        Err(error) => errors.push(SpeedReaderError::SelectorError(selector.to_owned(), error)),
+    }
 }
 
 #[inline]
 fn add_text_function(
     handlers: &mut Vec<(Selector, ContentFunction)>,
+    errors: &mut Vec<SpeedReaderError>,
     selector: &str,
     handler: TextHandler,
 ) {
-    handlers.push((
-        selector.parse::<Selector>().unwrap(),
-        ContentFunction::from(handler),
-    ))
+    match selector.parse::<Selector>() {
+        Ok(selector) => handlers.push((selector, ContentFunction::from(handler))),
+        Err(error) => errors.push(SpeedReaderError::SelectorError(selector.to_owned(), error)),
+    }
 }
 
 #[inline]
 fn collect_main_content(
     handlers: &mut Vec<(Selector, ContentFunction)>,
+    errors: &mut Vec<SpeedReaderError>,
     content_selectors: &[&str],
     cleanup_selectors: &[&str],
 ) {
     content_selectors.iter().for_each(|selector| {
         add_element_function(
             handlers,
+            errors,
             &format!("{}, {} *", selector, selector),
             Box::new(mark_retained_element),
         );
         add_text_function(
             handlers,
+            errors,
             &format!("{}, {} *", selector, selector),
             Box::new(mark_retained_text),
         );
@@ -150,6 +175,7 @@ fn collect_main_content(
     cleanup_selectors.iter().for_each(|selector| {
         add_element_function(
             handlers,
+            errors,
             selector,
             Box::new(|el| {
                 el.remove();
@@ -159,10 +185,11 @@ fn collect_main_content(
     });
 
     // Drop everything else
-    add_text_function(handlers, "*", Box::new(remove_unmarked_text));
-    add_element_function(handlers, "*", Box::new(unwrap_unmarked_element));
+    add_text_function(handlers, errors, "*", Box::new(remove_unmarked_text));
+    add_element_function(handlers, errors, "*", Box::new(unwrap_unmarked_element));
     add_element_function(
         handlers,
+        errors,
         "[style]",
         Box::new(|el| {
             el.remove_attribute("style");
@@ -172,10 +199,15 @@ fn collect_main_content(
 }
 
 #[inline]
-fn correct_relative_links(handlers: &mut Vec<(Selector, ContentFunction)>, origin: String) {
+fn correct_relative_links(
+    handlers: &mut Vec<(Selector, ContentFunction)>,
+    errors: &mut Vec<SpeedReaderError>,
+    origin: String,
+) {
     let href_origin = origin.clone();
     add_element_function(
         handlers,
+        errors,
         "a[href]",
         Box::new(move |el| {
             let href = el.get_attribute("href").expect("href was required");
@@ -189,6 +221,7 @@ fn correct_relative_links(handlers: &mut Vec<(Selector, ContentFunction)>, origi
     );
     add_element_function(
         handlers,
+        errors,
         "img[src]",
         Box::new(move |el| {
             let src = el.get_attribute("src").expect("src was required");
@@ -203,9 +236,10 @@ fn correct_relative_links(handlers: &mut Vec<(Selector, ContentFunction)>, origi
 }
 
 #[inline]
-fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
+fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>, errors: &mut Vec<SpeedReaderError>) {
     add_element_function(
         handlers,
+        errors,
         "[data-src]",
         Box::new(|el| {
             if let Some(src) = el.get_attribute("data-src") {
@@ -216,6 +250,7 @@ fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
     );
     add_element_function(
         handlers,
+        errors,
         "[data-srcset]",
         Box::new(|el| {
             if let Some(srcset) = el.get_attribute("data-srcset") {
@@ -226,6 +261,7 @@ fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
     );
     add_element_function(
         handlers,
+        errors,
         "[data-original]",
         Box::new(|el| {
             if let Some(original) = el.get_attribute("data-original") {
@@ -236,6 +272,7 @@ fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
     );
     add_element_function(
         handlers,
+        errors,
         "img[data-src-medium]",
         Box::new(|el| {
             if let Some(original) = el.get_attribute("data-src-medium") {
@@ -246,6 +283,7 @@ fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
     );
     add_element_function(
         handlers,
+        errors,
         "img[data-raw-src]",
         Box::new(|el| {
             if let Some(original) = el.get_attribute("data-raw-src") {
@@ -256,6 +294,7 @@ fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
     );
     add_element_function(
         handlers,
+        errors,
         "img[data-gl-src]",
         Box::new(|el| {
             if let Some(original) = el.get_attribute("data-gl-src") {
@@ -266,6 +305,7 @@ fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
     );
     add_element_function(
         handlers,
+        errors,
         "img",
         Box::new(|el| {
             el.remove_attribute("height");
@@ -276,9 +316,13 @@ fn delazify(handlers: &mut Vec<(Selector, ContentFunction)>) {
 }
 
 #[inline]
-fn fix_social_embeds(handlers: &mut Vec<(Selector, ContentFunction)>) {
+fn fix_social_embeds(
+    handlers: &mut Vec<(Selector, ContentFunction)>,
+    errors: &mut Vec<SpeedReaderError>,
+) {
     add_element_function(
         handlers,
+        errors,
         ".twitterContainer",
         Box::new(|el: &mut Element| {
             el.prepend(
@@ -289,7 +333,7 @@ fn fix_social_embeds(handlers: &mut Vec<(Selector, ContentFunction)>) {
             );
             Ok(())
         }),
-    )
+    );
 }
 
 #[inline]
