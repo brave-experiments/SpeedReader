@@ -43,7 +43,9 @@ fn main() {
     // Collect all the C files from src/deps/picotest and src.
     let c_files = glob_cc_files(PICOTEST_DIR, "*.c");
 
-    let cpp_files = glob_cc_files(SRC_DIR, "*.cpp");
+    let mut cpp_files = glob_cc_files(SRC_DIR, "*.cpp");
+    let mut extras = glob_cc_files("../src", "*.cpp");
+    cpp_files.append(&mut extras);
 
     cc::Build::new()
         .debug(true)

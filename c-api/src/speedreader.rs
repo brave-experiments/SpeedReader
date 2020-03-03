@@ -1,14 +1,19 @@
 use super::*;
+use libc::c_void;
 
 // NOTE: we use `ExternOutputSink` proxy type, for extern handler function
 struct ExternOutputSink {
-    handler: unsafe extern "C" fn(*const c_char, size_t),
+    handler: unsafe extern "C" fn(*const c_char, size_t, *mut c_void),
+    user_data: *mut c_void,
 }
 
 impl ExternOutputSink {
     #[inline]
-    fn new(handler: unsafe extern "C" fn(*const c_char, size_t)) -> Self {
-        ExternOutputSink { handler }
+    fn new(
+        handler: unsafe extern "C" fn(*const c_char, size_t, *mut c_void),
+        user_data: *mut c_void,
+    ) -> Self {
+        ExternOutputSink { handler, user_data }
     }
 }
 
@@ -18,7 +23,7 @@ impl OutputSink for ExternOutputSink {
         let chunk_len = chunk.len();
         let chunk = chunk.as_ptr() as *const c_char;
 
-        unsafe { (self.handler)(chunk, chunk_len) };
+        unsafe { (self.handler)(chunk, chunk_len, self.user_data) };
     }
 }
 
@@ -66,7 +71,7 @@ pub struct CSpeedReaderRewriter {
 /// whitelists. Must be freed by calling `speedreader_free`.
 #[no_mangle]
 pub extern "C" fn speedreader_new() -> *mut SpeedReader {
-    to_ptr_mut(SpeedReader::new())
+    to_ptr_mut(SpeedReader::default())
 }
 
 /// New instance of SpeedReader using deserialized whitelist
@@ -84,7 +89,7 @@ pub extern "C" fn speedreader_with_whitelist(
 /// Checks if the provided URL matches whitelisted readable URLs.
 #[no_mangle]
 pub extern "C" fn speedreader_url_readable(
-    speedreader: *mut SpeedReader,
+    speedreader: *const SpeedReader,
     url: *const c_char,
     url_len: size_t,
 ) -> bool {
@@ -97,7 +102,7 @@ pub extern "C" fn speedreader_url_readable(
 /// URL. `RewriterUnknown` if no match in the whitelist.
 #[no_mangle]
 pub extern "C" fn speedreader_find_type(
-    speedreader: *mut SpeedReader,
+    speedreader: *const SpeedReader,
     url: *const c_char,
     url_len: size_t,
 ) -> CRewriterType {
@@ -122,10 +127,11 @@ pub extern "C" fn speedreader_free(speedreader: *mut SpeedReader) {
 /// associated memory.
 #[no_mangle]
 pub extern "C" fn speedreader_rewriter_new(
-    speedreader: *mut SpeedReader,
+    speedreader: *const SpeedReader,
     url: *const c_char,
     url_len: size_t,
-    output_sink: unsafe extern "C" fn(*const c_char, size_t),
+    output_sink: unsafe extern "C" fn(*const c_char, size_t, *mut c_void),
+    output_sink_user_data: *mut c_void,
     rewriter_type: CRewriterType,
 ) -> *mut CSpeedReaderRewriter {
     let url = unwrap_or_ret_null! { to_str!(url, url_len) };
@@ -133,7 +139,7 @@ pub extern "C" fn speedreader_rewriter_new(
 
     let opaque_config = speedreader.get_opaque_config(url);
 
-    let output_sink = ExternOutputSink::new(output_sink);
+    let output_sink = ExternOutputSink::new(output_sink, output_sink_user_data);
 
     let rewriter = unwrap_or_ret_null! { speedreader
         .get_rewriter(

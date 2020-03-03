@@ -3,7 +3,7 @@ language = "C++"
 
 # Options for Wrapping the Contents of the Header
 include_guard = "SPEEDREADER_FFI_H"
-namespace = "speedreader_ffi"
+namespace = "speedreader"
 
 # Code Stylr Options
 braces = "SameLine"
