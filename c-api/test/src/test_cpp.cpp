@@ -69,10 +69,11 @@ void test_cpp_rewriter_callback() {
   std::unique_ptr<SpeedReader> sr = std::make_unique<SpeedReader>();
   std::string url_str = "https://cnn.com/news/article/topic/index.html";
   std::string output;
-  auto callback = [&output](const char* chunk, size_t chunk_len) {
-    output.append(chunk, chunk_len);
+  auto callback = [](const char* chunk, size_t chunk_len, void* user_data) {
+    std::string* out = static_cast<std::string*>(user_data);
+    out->append(chunk, chunk_len);
   };
-  auto rewriter = sr->RewriterNew(url_str, RewriterType::RewriterUnknown, callback);
+  auto rewriter = sr->RewriterNew(url_str, RewriterType::RewriterUnknown, callback, &output);
   const char* content1 = "<html><div class=\"pg-headline\">";
   ok(rewriter->Write(content1, strlen(content1)) == 0);
   const char* content2 = "hello world</div></html>";
@@ -97,7 +98,46 @@ void test_cpp_rewriter_buffering() {
   ok(rewriter->GetOutput()->compare("<div class=\"pg-headline\">hello world</div>")==0);
 }
 
+void test_cpp_rewriter_bad_sequence() {
+  std::unique_ptr<SpeedReader> sr = std::make_unique<SpeedReader>();
+  std::string url_str = "https://cnn.com/news/article/topic/index.html";
+  auto rewriter = sr->RewriterNew(url_str, RewriterType::RewriterUnknown);
+  ok(rewriter->End() == 0);
+  const char* content = "hello";
+  ok(rewriter->Write(content, strlen(content)) != 0);
+}
+
+void test_cpp_rewriter_double_end() {
+  std::unique_ptr<SpeedReader> sr = std::make_unique<SpeedReader>();
+  std::string url_str = "https://cnn.com/news/article/topic/index.html";
+  auto rewriter = sr->RewriterNew(url_str, RewriterType::RewriterUnknown);
+  ok(rewriter->End() == 0);
+  ok(rewriter->End() != 0);
+}
+
+void test_cpp_rewriter_parsing_ambiguity() {
+  const char* ambiguity = "<select><div><style><div></div></style></div></select>";
+
+  std::unique_ptr<SpeedReader> sr = std::make_unique<SpeedReader>();
+  std::string url_str = "https://cnn.com/news/article/topic/index.html";
+  auto rewriter = sr->RewriterNew(url_str, RewriterType::RewriterUnknown);
+  int write_ret = rewriter->Write(ambiguity, strlen(ambiguity));
+  int end_ret = 0;
+  if (write_ret != 0) {
+    end_ret = rewriter->End();
+    ok(end_ret != 0);
+    std::cout << "Error: " << SpeedReader::TakeLastError() << std::endl;
+  } else {
+    ok(write_ret != 0);
+    std::cout << "Error: " << SpeedReader::TakeLastError() << std::endl;
+  }
+}
+
 void test_cpp_rewriter() {
-  subtest("c++ callback", test_cpp_rewriter_callback);
   subtest("c++ buffering", test_cpp_rewriter_buffering);
+  subtest("c++ callback", test_cpp_rewriter_callback);
+
+  subtest("c++ error for wrong call sequence", test_cpp_rewriter_bad_sequence);
+  subtest("c++ error for double end", test_cpp_rewriter_double_end);
+  subtest("c++ error for parsing ambiguity", test_cpp_rewriter_parsing_ambiguity);
 }

@@ -3,15 +3,13 @@ use glob::glob;
 use std::path::{Path, PathBuf};
 
 const CFLAGS: &'static [&str] = &[
-    "-std=c++17",
-    "-pthread",
+    "-std=c++14",
     "-Wcast-qual",
     "-Wwrite-strings",
     "-Wshadow",
     "-Winline",
     "-Wdisabled-optimization",
     "-Wuninitialized",
-    "-Wcast-align",
     "-Wcast-align",
     "-Wno-missing-field-initializers",
 ];
@@ -48,9 +46,9 @@ fn main() {
     cpp_files.append(&mut extras);
 
     cc::Build::new()
-        .debug(true)
+        .debug(false)
         .cpp(false)
-        .opt_level(0)
+        .opt_level(3)
         .flag_if_supported("-Wl,no-as-needed")
         .warnings(true)
         .extra_warnings(true)
@@ -60,9 +58,9 @@ fn main() {
         .compile("picotest");
 
     build
-        .debug(true)
+        .debug(false)
         .cpp(true)
-        .opt_level(0)
+        .opt_level(3)
         .flag_if_supported("-Wl,no-as-needed")
         .warnings(true)
         .extra_warnings(true)

@@ -5,6 +5,8 @@ language = "C++"
 include_guard = "SPEEDREADER_FFI_H"
 namespace = "speedreader"
 
+no_includes = true
+
 # Code Stylr Options
 braces = "SameLine"
 line_length = 80

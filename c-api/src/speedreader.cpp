@@ -37,8 +37,21 @@ std::unique_ptr<Rewriter> SpeedReader::RewriterNew(const std::string& url,
 std::unique_ptr<Rewriter> SpeedReader::RewriterNew(
     const std::string& url,
     RewriterType rewriter_type,
-    std::function<void(const char*, size_t)> callback) {
-  return std::make_unique<Rewriter>(raw, url, rewriter_type, callback);
+    void (*output_sink)(const char*, size_t, void*),
+    void* output_sink_user_data) {
+  return std::make_unique<Rewriter>(raw, url, rewriter_type, output_sink, output_sink_user_data);
+}
+
+// static
+std::string SpeedReader::TakeLastError() {
+  auto* error = speedreader_take_last_error();
+  if (error) {
+    std::string err(error->data, error->len);
+    speedreader_str_free(*error);
+    return err;
+  } else {
+    return "";
+  }
 }
 
 Rewriter::Rewriter(C_SpeedReader* speedreader,
@@ -46,6 +59,7 @@ Rewriter::Rewriter(C_SpeedReader* speedreader,
                    RewriterType rewriter_type)
     : output_(""),
       ended_(false),
+      poisoned_(false),
       raw(speedreader_rewriter_new(
           speedreader,
           url.c_str(),
@@ -60,21 +74,17 @@ Rewriter::Rewriter(C_SpeedReader* speedreader,
 Rewriter::Rewriter(C_SpeedReader* speedreader,
                    const std::string& url,
                    RewriterType rewriter_type,
-                   std::function<void(const char*, size_t)> callback)
+                   void (*output_sink)(const char*, size_t, void*),
+                   void* output_sink_user_data)
     : output_(""),
       ended_(false),
-      raw(speedreader_rewriter_new(
-          speedreader,
-          url.c_str(),
-          url.length(),
-          [](const char* chunk, size_t chunk_len, void* user_data) {
-            auto* callback =
-                static_cast<std::function<void(const char*, size_t)>*>(
-                    user_data);
-            (*callback)(chunk, chunk_len);
-          },
-          &callback,
-          rewriter_type)) {}
+      poisoned_(false),
+      raw(speedreader_rewriter_new(speedreader,
+                                   url.c_str(),
+                                   url.length(),
+                                   output_sink,
+                                   output_sink_user_data,
+                                   rewriter_type)) {}
 
 Rewriter::~Rewriter() {
   if (!ended_) {
@@ -83,15 +93,19 @@ Rewriter::~Rewriter() {
 }
 
 int Rewriter::Write(const char* chunk, size_t chunk_len) {
-  if (!ended_) {
-    return speedreader_rewriter_write(raw, chunk, chunk_len);
+  if (!ended_ && !poisoned_) {
+    int ret = speedreader_rewriter_write(raw, chunk, chunk_len);
+    if (ret != 0) {
+      poisoned_ = true;
+    }
+    return ret;
   } else {
     return -1;
   }
 }
 
 int Rewriter::End() {
-  if (!ended_) {
+  if (!ended_ && !poisoned_) {
     int ret = speedreader_rewriter_end(raw);
     ended_ = true;
     return ret;

@@ -171,6 +171,8 @@ pub extern "C" fn speedreader_rewriter_write(
 /// Calling twice will cause panic.
 #[no_mangle]
 pub extern "C" fn speedreader_rewriter_end(rewriter: *mut CSpeedReaderRewriter) -> c_int {
+    // Clean up the memory by converting the pointer back into a Box and letting
+    // the Box be dropped at the end of the function
     let mut rewriter: Box<Box<dyn SpeedReaderProcessor>> = void_to_box!(rewriter);
     unwrap_or_ret_err_code! { rewriter.end() };
     0
@@ -178,5 +180,7 @@ pub extern "C" fn speedreader_rewriter_end(rewriter: *mut CSpeedReaderRewriter) 
 
 #[no_mangle]
 pub extern "C" fn speedreader_rewriter_free(rewriter: *mut CSpeedReaderRewriter) {
+    // Clean up the memory by converting the pointer back
+    // into a Box and letting the Box be dropped.
     void_to_box!(rewriter);
 }

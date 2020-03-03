@@ -4,6 +4,11 @@ use std::cell::RefCell;
 use std::{ptr, slice, str};
 
 #[inline]
+fn to_ptr<T>(val: T) -> *const T {
+    Box::into_raw(Box::new(val))
+}
+
+#[inline]
 fn to_ptr_mut<T>(val: T) -> *mut T {
     Box::into_raw(Box::new(val))
 }
@@ -69,7 +74,7 @@ macro_rules! unwrap_or_ret {
         match $expr {
             Ok(v) => v,
             Err(err) => {
-                crate::errors::LAST_ERROR.with(|e| *e.borrow_mut() = Some(err.into()));
+                crate::errors::LAST_ERROR.with(|cell| *cell.borrow_mut() = Some(err.into()));
                 return $ret_val;
             }
         }
@@ -90,3 +95,6 @@ macro_rules! unwrap_or_ret_null {
 
 mod errors;
 mod speedreader;
+mod charbuf;
+
+pub use self::charbuf::CharBuf;

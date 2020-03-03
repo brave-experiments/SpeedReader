@@ -1,11 +1,7 @@
 #ifndef SPEEDREADER_H
 #define SPEEDREADER_H
 
-#include <cstdarg>
-#include <cstdint>
-#include <cstdlib>
 #include <memory>
-#include <new>
 #include <string>
 
 #include "speedreader_ffi.hpp"
@@ -30,7 +26,8 @@ class Rewriter {
   Rewriter(C_SpeedReader* speedreader,
            const std::string& url,
            RewriterType rewriter_type,
-           std::function<void(const char*, size_t)> callback);
+           void (*output_sink)(const char*, size_t, void*),
+           void* output_sink_user_data);
   ~Rewriter();
 
   /// Write a new chunk of data (byte array) to the rewriter instance. Does
@@ -52,6 +49,7 @@ class Rewriter {
 
   std::string output_;
   bool ended_;
+  bool poisoned_;
   C_CSpeedReaderRewriter* raw;
 };
 
@@ -81,10 +79,14 @@ class SpeedReader {
 
   /// Create a `Rewriter` that calls provided callback with every new chunk of
   /// output available.
-  std::unique_ptr<Rewriter> RewriterNew(
-      const std::string& url,
-      RewriterType rewriter_type,
-      std::function<void(const char*, size_t)> callback);
+  std::unique_ptr<Rewriter> RewriterNew(const std::string& url,
+                                        RewriterType rewriter_type,
+                                        void (*output_sink)(const char*,
+                                                            size_t,
+                                                            void*),
+                                        void* output_sink_user_data);
+  
+  static std::string TakeLastError();
 
  private:
   SpeedReader(const SpeedReader&) = delete;
