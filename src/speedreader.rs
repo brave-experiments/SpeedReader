@@ -3,8 +3,6 @@ use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::io::Read;
 use url::Url;
-use std::borrow::Borrow;
-//use std::collections::HashMap;
 
 use crate::classifier;
 use classifier::feature_extractor::{FeatureExtractorStreamer, FeaturisingTreeSink};
