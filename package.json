@@ -1,0 +1,32 @@
+{
+  "name": "speedreader",
+  "version": "1.0.0",
+  "description": "SpeedReader rewriting whitelist",
+  "main": "validate.ts",
+  "types": "./src/types/SpeedReaderConfig.d.ts",
+  "scripts": {
+    "test": "npm run schema && ts-node src/validate.ts",
+    "schema": "typescript-json-schema --required --topRef --strictNullChecks src/types/SpeedReaderConfig.d.ts SpeedReader.SpeedReaderConfig -o dist/SpeedReaderConfig.schema.json",
+    "start": "node src/serialize.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brave-experiments/SpeedReader.git"
+  },
+  "author": "Andrius Aucinas aaucinas@brave.com",
+  "license": "MPL-2.0",
+  "bugs": {
+    "url": "https://github.com/brave-experiments/SpeedReader/issues"
+  },
+  "homepage": "https://github.com/brave-experiments/SpeedReader#readme",
+  "dependencies": {
+    "@types/node": "^13.11.0",
+    "ajv": "^6.12.0",
+    "node-gzip": "^1.1.2",
+    "typescript-json-schema": "^0.42.0"
+  },
+  "devDependencies": {
+    "ts-node": "^8.8.1",
+    "typescript": "^3.8.3"
+  }
+}
