@@ -1,3 +1,0 @@
-[submodule "src/third_parties/myhtml"]
-	path = src/third_parties/myhtml
-	url = https://github.com/lexborisov/myhtml
