@@ -5,10 +5,16 @@ const util = require('util');
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 
-readFile('dist/SpeedReaderConfig.json')
+const input = "dist/SpeedReaderConfig.json";
+const output = "dist/SpeedReaderConfig.dat";
+
+readFile(input)
 .then((config) => {
   return gzip(JSON.stringify(JSON.parse(config)))
 })
 .then((compressed) => {
-  return writeFile("dist/SpeedReaderConfig.dat", compressed);
+  return writeFile(output, compressed);
+})
+.then(() => {
+  console.log("Serialized")
 });

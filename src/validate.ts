@@ -28,7 +28,7 @@ const configJson = JSON.parse(configRaw);
 const schemaRaw = fs.readFileSync("dist/SpeedReaderConfig.schema.json", 'utf8');
 const schema = JSON.parse(schemaRaw);
 
-const validRes = validate(schema, configJson[0]);
+const validRes = validate(schema, configJson);
 
 if (validRes.valid) {
   console.log("Schema is alright.");

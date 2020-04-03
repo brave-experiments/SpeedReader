@@ -1,8 +1,16 @@
 
 declare namespace SpeedReader {
 
+    type Configuration = SpeedReaderConfig[];
+
     interface SpeedReaderConfig {
         domain: string;
+        /**
+         * Adblock-style rules matching URLs to run SpeedReader on
+         *
+         * @items.type string
+         * @items.minimum 1
+         */
         url_rules: string[];
         declarative_rewrite?: RewriteRules;
     }
