@@ -5,9 +5,7 @@
   "main": "validate.ts",
   "types": "./src/types/SpeedReaderConfig.d.ts",
   "scripts": {
-    "test": "npm run schema && ts-node src/validate.ts",
-    "schema": "typescript-json-schema --required --topRef --strictNullChecks src/types/SpeedReaderConfig.d.ts SpeedReader.Configuration -o data/SpeedReaderConfig.schema.json",
-    "data-files": "npm test && node src/serialize.js"
+    "data-files": "ts-node src/generate-dat.ts"
   },
   "repository": {
     "type": "git",
@@ -21,6 +19,7 @@
   "homepage": "https://github.com/brave-experiments/SpeedReader#readme",
   "dependencies": {
     "@types/node": "^13.11.0",
+    "@types/node-gzip": "^1.1.0",
     "ajv": "^6.12.0",
     "node-gzip": "^1.1.2",
     "typescript-json-schema": "^0.42.0"
