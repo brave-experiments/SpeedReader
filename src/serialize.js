@@ -5,8 +5,8 @@ const util = require('util');
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 
-const input = "dist/SpeedReaderConfig.json";
-const output = "dist/SpeedReaderConfig.dat";
+const input = "data/SpeedReaderConfig.json";
+const output = "data/SpeedReaderConfig.dat";
 
 readFile(input)
 .then((config) => {

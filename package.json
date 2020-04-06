@@ -6,8 +6,8 @@
   "types": "./src/types/SpeedReaderConfig.d.ts",
   "scripts": {
     "test": "npm run schema && ts-node src/validate.ts",
-    "schema": "typescript-json-schema --required --topRef --strictNullChecks src/types/SpeedReaderConfig.d.ts SpeedReader.Configuration -o dist/SpeedReaderConfig.schema.json",
-    "start": "npm test && node src/serialize.js"
+    "schema": "typescript-json-schema --required --topRef --strictNullChecks src/types/SpeedReaderConfig.d.ts SpeedReader.Configuration -o data/SpeedReaderConfig.schema.json",
+    "data-files": "npm test && node src/serialize.js"
   },
   "repository": {
     "type": "git",

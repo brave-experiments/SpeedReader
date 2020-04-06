@@ -3,5 +3,5 @@
 .DS_Store
 
 node_modules/
-dist/SpeedReaderConfig.schema.json
-dist/SpeedReaderConfig.dat
+data/SpeedReaderConfig.schema.json
+data/SpeedReaderConfig.dat

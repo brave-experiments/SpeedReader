@@ -22,10 +22,10 @@ export const validate = (schema: object, data: object) => {
   };
 };
 
-const configRaw = fs.readFileSync("dist/SpeedReaderConfig.json", 'utf8');
+const configRaw = fs.readFileSync("data/SpeedReaderConfig.json", 'utf8');
 const configJson = JSON.parse(configRaw);
 
-const schemaRaw = fs.readFileSync("dist/SpeedReaderConfig.schema.json", 'utf8');
+const schemaRaw = fs.readFileSync("data/SpeedReaderConfig.schema.json", 'utf8');
 const schema = JSON.parse(schemaRaw);
 
 const validRes = validate(schema, configJson);
