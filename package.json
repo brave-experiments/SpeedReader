@@ -5,7 +5,8 @@
   "main": "validate.ts",
   "types": "./src/types/SpeedReaderConfig.d.ts",
   "scripts": {
-    "data-files": "ts-node src/generate-dat.ts"
+    "build": "npx tsc",
+    "data-files": "node dist/generate-dat.js"
   },
   "repository": {
     "type": "git",
