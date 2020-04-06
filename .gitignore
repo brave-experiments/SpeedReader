@@ -3,6 +3,5 @@
 .DS_Store
 
 node_modules/
-data/SpeedReaderConfig.schema.json
-data/SpeedReaderConfig.dat
+data/speedreader-updater.dat
 key.pem

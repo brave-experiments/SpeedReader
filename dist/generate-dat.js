@@ -17,7 +17,7 @@ const TJS = __importStar(require("typescript-json-schema"));
 const util_1 = __importDefault(require("util"));
 const node_gzip_1 = require("node-gzip");
 const configFile = "data/SpeedReaderConfig.json";
-const outputFile = "data/SpeedReaderConfig.dat";
+const outputFile = "data/speedreader-updater.dat";
 const readFile = util_1.default.promisify(fs_1.default.readFile);
 const writeFile = util_1.default.promisify(fs_1.default.writeFile);
 const validate = (schema, data) => {

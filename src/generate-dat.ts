@@ -7,7 +7,7 @@ import {gzip} from 'node-gzip'
 import { sys } from "typescript"
 
 const configFile = "data/SpeedReaderConfig.json"
-const outputFile = "data/SpeedReaderConfig.dat"
+const outputFile = "data/speedreader-updater.dat"
 
 const readFile = util.promisify(fs.readFile)
 const writeFile = util.promisify(fs.writeFile)
