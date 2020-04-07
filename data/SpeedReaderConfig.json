@@ -21,6 +21,7 @@
             "preprocess": [
                 {
                     "selector": "li.hst-resgalleryitem",
+                    "attribute": null,
                     "element_name": "div"
                 }
             ]
@@ -45,7 +46,7 @@
     {
         "domain": "businessinsider.com",
         "url_rules": [
-
+            "/businessinsider\\.com\/(\\w+-)+(\\d){4}-(\\d)/"
         ],
         "declarative_rewrite": {
             "main_content": [

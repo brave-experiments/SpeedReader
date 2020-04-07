@@ -12,6 +12,7 @@ declare namespace SpeedReader {
          * @items.minimum 1
          */
         url_rules: string[];
+        /** @nullable */
         declarative_rewrite?: RewriteRules;
     }
 
@@ -20,12 +21,14 @@ declare namespace SpeedReader {
         main_content_cleanup: string[];
         delazify: boolean;
         fix_embeds: boolean;
+        /** @nullable */
         content_script?: string;
         preprocess: AttributeRewrite[];
     }
 
     interface AttributeRewrite {
         selector: string;
+        /** @nullable */
         attribute?: [string?, string?];
         element_name: string;
     }

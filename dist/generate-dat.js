@@ -25,9 +25,9 @@ const writeFile = util_1.default.promisify(fs_1.default.writeFile);
 const validate = (schema, data) => {
     const ajv = new ajv_1.default({
         allErrors: true,
-        coerceTypes: 'array',
+        nullable: true,
+        coerceTypes: true,
         removeAdditional: true,
-        useDefaults: 'empty',
     });
     const valid = ajv.validate(schema, data);
     const errorText = ajv.errorsText() && ajv.errorsText().toLowerCase() !== "no errors"
@@ -70,7 +70,7 @@ downloadConfig(configURL, configFile)
     .then((config) => {
     const validated = validate(getSchema(), config);
     if (!validated.valid) {
-        throw TypeError("The configuration does not match expected format");
+        throw TypeError("The configuration does not match expected format: " + validated.errorText);
     }
     return config;
 })
