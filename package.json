@@ -21,8 +21,10 @@
   "dependencies": {
     "@types/node": "^13.11.0",
     "@types/node-gzip": "^1.1.0",
+    "@types/request": "^2.48.4",
     "ajv": "^6.12.0",
     "node-gzip": "^1.1.2",
+    "request": "^2.88.2",
     "typescript-json-schema": "^0.42.0"
   },
   "devDependencies": {

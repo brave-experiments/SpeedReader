@@ -4,8 +4,9 @@ import {resolve} from "path"
 import * as TJS from "typescript-json-schema"
 import util from 'util'
 import {gzip} from 'node-gzip'
-import { sys } from "typescript"
+import request from 'request'
 
+const configURL = "https://raw.githubusercontent.com/brave-experiments/SpeedReader/master/"
 const configFile = "data/SpeedReaderConfig.json"
 const outputFile = "data/speedreader-updater.dat"
 
@@ -32,15 +33,13 @@ const validate = (schema: TJS.Definition, data: object) => {
 }
 
 const getSchema = () => {
-  // optionally pass argument to schema generator
   const settings: TJS.PartialArgs = {
-      required: true,
-      topRef: true,
+      required: true,   // Include required fields for non-optional properties
+      topRef: true,     // Create a top-level ref definition
   }
 
-  // optionally pass ts compiler options
   const compilerOptions: TJS.CompilerOptions = {
-      strictNullChecks: true
+      strictNullChecks: true    // Make values non-nullable by default
   }
 
   const program = TJS.getProgramFromFiles([resolve("src/types/SpeedReaderConfig.d.ts")], compilerOptions)
@@ -49,10 +48,21 @@ const getSchema = () => {
   return schema
 }
 
-readFile(configFile)
-.then((config) => {
-  return JSON.parse(config.toString('utf-8'))
-})
+const downloadConfig = (url: string, file: string) => {
+  return new Promise<Object>(function(resolve, reject){
+      request(url + file, function (err, response, body) {
+          // in addition to parsing the value, deal with possible errors
+          if (err) return reject(err);
+          try {
+              resolve(JSON.parse(body));
+          } catch(e) {
+              reject(e);
+          }
+      });
+  });
+}
+
+downloadConfig(configURL, configFile)
 .then((config) => {
   const validated = validate(getSchema(), config);
   if (!validated.valid) {
