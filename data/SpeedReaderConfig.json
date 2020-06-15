@@ -651,7 +651,8 @@
                 ".pg-headline",
                 ".metadata",
                 ".media__video--thumbnail-wrapper img",
-                "[itemprop=\"articleBody\"]"
+                "[itemprop=\"articleBody\"]",
+                ".Article__wrapper", ".Article__body"
             ],
             "main_content_cleanup": [
                 ".m-share",
@@ -670,6 +671,14 @@
                 },
                 {
                     "selector": ".zn-body__paragraph",
+                    "element_name": "p"
+                },
+                {
+                    "selector": ".CaptionedImage__component",
+                    "element_name": "figure"
+                },
+                {
+                    "selector": ".Paragraph__component",
                     "element_name": "p"
                 }
             ]
@@ -730,6 +739,14 @@
                 {
                     "selector": ".mini-info-list li",
                     "element_name": "p"
+                },
+                {
+                    "selector": ".hero-unit ul",
+                    "element_name": "span"
+                },
+                {
+                    "selector": ".hero-unit li",
+                    "element_name": "span"
                 }
             ]
         }
@@ -781,6 +798,22 @@
                     "selector": ".blocks-image",
                     "attribute": null,
                     "element_name": "img"
+                },
+                {
+                    "selector": ".mini-info-list",
+                    "element_name": "div"
+                },
+                {
+                    "selector": ".mini-info-list li",
+                    "element_name": "p"
+                },
+                {
+                    "selector": ".hero-unit ul",
+                    "element_name": "span"
+                },
+                {
+                    "selector": ".hero-unit li",
+                    "element_name": "span"
                 }
             ]
         }
@@ -1258,7 +1291,9 @@
                 ".clickToEnlarge",
                 ".gallery",
                 ".video",
-                ".svg-symbol"
+                ".svg-symbol",
+                ".c-assetAuthor_profile",
+                ".newsletter-subscribe-form"
             ],
             "delazify": true,
             "fix_embeds": true,
