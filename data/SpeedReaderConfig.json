@@ -663,7 +663,16 @@
             "delazify": true,
             "fix_embeds": true,
             "content_script": null,
-            "preprocess": []
+            "preprocess": [
+                {
+                    "selector": ".el__embedded",
+                    "element_name": "figure"
+                },
+                {
+                    "selector": ".zn-body__paragraph",
+                    "element_name": "p"
+                }
+            ]
         }
     },
     {
