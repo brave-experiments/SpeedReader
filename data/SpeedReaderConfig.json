@@ -698,7 +698,8 @@
                 "#story-page",
                 "section.article",
                 ".programmes-page.article--individual",
-                "article.blocks-article"
+                "article.blocks-article",
+                ".LongArticle-body", ".LongArticle-headline", ".LongArticle-synopsis", ".LongArticle-author", ".LongArticle-coverImage"
             ],
             "main_content_cleanup": [
                 "[class*=share-tools]",
@@ -708,7 +709,8 @@
                 ".story-share",
                 ".article__footer",
                 "article header img",
-                ".drop-capped"
+                ".drop-capped",
+                ".RelatedBucket"
             ],
             "delazify": true,
             "fix_embeds": true,
@@ -747,6 +749,10 @@
                 {
                     "selector": ".hero-unit li",
                     "element_name": "span"
+                },
+                {
+                    "selector": ".LongArticle-coverImage",
+                    "element_name": "figure"
                 }
             ]
         }
@@ -765,7 +771,8 @@
                 "#story-page",
                 "section.article",
                 ".programmes-page.article--individual",
-                "article.blocks-article"
+                "article.blocks-article",
+                ".LongArticle-body", ".LongArticle-headline", ".LongArticle-synopsis", ".LongArticle-author", ".LongArticle-coverImage"
             ],
             "main_content_cleanup": [
                 "[class*=share-tools]",
@@ -775,7 +782,8 @@
                 ".story-share",
                 ".article__footer",
                 "article header img",
-                ".drop-capped"
+                ".drop-capped",
+                ".RelatedBucket"
             ],
             "delazify": true,
             "fix_embeds": true,
@@ -814,6 +822,10 @@
                 {
                     "selector": ".hero-unit li",
                     "element_name": "span"
+                },
+                {
+                    "selector": ".LongArticle-coverImage",
+                    "element_name": "figure"
                 }
             ]
         }
@@ -1101,7 +1113,8 @@
         "declarative_rewrite": {
             "main_content": [
                 ".article-content",
-                ".feature-article"
+                ".feature-article",
+                ".article-timestamp", ".updated-wrap"
             ],
             "main_content_cleanup": [
                 ".right-rail",
@@ -1110,13 +1123,26 @@
                 ".video-player__overlay",
                 ".left-column",
                 ".share-article-button",
-                ".text-to-speech",
+                ".text-to-speech", ".text-to-speech-mobile",
                 ".first-paragraph-image"
             ],
             "delazify": true,
             "fix_embeds": false,
-            "content_script": null,
-            "preprocess": []
+            "content_script": "<script>function resizeIframe(obj) { obj.style.minHeight = \"270px\"; obj.style.height = obj.contentWindow.document.documentElement.scrollHeight + \"px\"; obj.style.width = \"100%\"; } [...document.querySelectorAll(\".thirdparty-embed__iframe\")].map(o => o.height = \"\"); [...document.querySelectorAll(\".chart-js iframe, .thirdparty-embed__iframe\")].map(resizeIframe);</script>",
+            "preprocess": [
+                {
+                    "selector": ".article-timestamp noscript",
+                    "element_name": "div"
+                },
+                {
+                    "selector": "figure .chart-js .chart__container",
+                    "attribute": [
+                        "data-src",
+                        "src"
+                    ],
+                    "element_name": "iframe"
+                }
+            ]
         }
     },
     {
