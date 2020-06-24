@@ -710,7 +710,8 @@
                 ".article__footer",
                 "article header img",
                 ".drop-capped",
-                ".RelatedBucket"
+                ".RelatedBucket",
+                ".byline__correspondent-photo-container"
             ],
             "delazify": true,
             "fix_embeds": true,
@@ -783,7 +784,8 @@
                 ".article__footer",
                 "article header img",
                 ".drop-capped",
-                ".RelatedBucket"
+                ".RelatedBucket",
+                ".byline__correspondent-photo-container"
             ],
             "delazify": true,
             "fix_embeds": true,
@@ -1114,7 +1116,8 @@
             "main_content": [
                 ".article-content",
                 ".feature-article",
-                ".article-timestamp", ".updated-wrap"
+                ".article-timestamp", ".updated-wrap",
+                "section .body-copy p", "section figure", ".lede-text-only"
             ],
             "main_content_cleanup": [
                 ".right-rail",
@@ -1124,7 +1127,9 @@
                 ".left-column",
                 ".share-article-button",
                 ".text-to-speech", ".text-to-speech-mobile",
-                ".first-paragraph-image"
+                ".first-paragraph-image",
+                "[class*=recirc]",
+                ".author__modal"
             ],
             "delazify": true,
             "fix_embeds": false,
@@ -1141,6 +1146,10 @@
                         "src"
                     ],
                     "element_name": "iframe"
+                },
+                {
+                    "selector": "div.author",
+                    "element_name": "span"
                 }
             ]
         }
@@ -1364,6 +1373,24 @@
                 ".c-article-writer__social-link-icon",
                 ".ad-boxinjector-wrapper",
                 ".ad"
+            ],
+            "delazify": true,
+            "fix_embeds": false,
+            "content_script": null,
+            "preprocess": []
+        }
+    },
+    {
+        "domain": "wired.com",
+        "url_rules": [
+            "||wired.com/story/*"
+        ],
+        "declarative_rewrite": {
+            "main_content": [
+                "article"
+            ],
+            "main_content_cleanup": [
+                ".social-icons"
             ],
             "delazify": true,
             "fix_embeds": false,
