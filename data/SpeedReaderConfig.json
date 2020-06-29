@@ -1395,7 +1395,12 @@
             "delazify": true,
             "fix_embeds": false,
             "content_script": null,
-            "preprocess": []
+            "preprocess": [
+                {
+                    "selector": "figure noscript",
+                    "element_name": "div"
+                }
+            ]
         }
     }
 ]
