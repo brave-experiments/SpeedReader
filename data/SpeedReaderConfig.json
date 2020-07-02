@@ -1390,7 +1390,8 @@
                 "article"
             ],
             "main_content_cleanup": [
-                ".social-icons"
+                ".social-icons",
+                ".related-list"
             ],
             "delazify": true,
             "fix_embeds": false,
@@ -1399,6 +1400,63 @@
                 {
                     "selector": "figure noscript",
                     "element_name": "div"
+                }
+            ]
+        }
+    },
+    {
+        "domain": "mirror.co.uk",
+        "url_rules": [
+            "/mirror.co.uk\\/.*-(\\d){6,}/"
+        ],
+        "declarative_rewrite": {
+            "main_content": [
+                ".headline-with-subtype",
+                ".sub-title",
+                ".byline .author",
+                ".byline .article-information",
+                "article .article-body"
+            ],
+            "main_content_cleanup": [
+                "[class*=embedded]",
+                ".read-more-links",
+                "article form"
+            ],
+            "delazify": true,
+            "fix_embeds": false,
+            "content_script": null,
+            "preprocess": [
+                
+            ]
+        }
+    },
+    {
+        "domain": "tmz.com",
+        "url_rules": [
+            "/tmz.com\\/(\\d){4}\\/(\\d){2}\\/(\\d){2}\\/.*/"
+        ],
+        "declarative_rewrite": {
+            "main_content": [
+                "main > article"
+            ],
+            "main_content_cleanup": [
+                ".video-block button",
+                ".hero-bar__card",
+                ".social",
+                ".related-articles",
+                ".disqus-switch"
+            ],
+            "delazify": true,
+            "fix_embeds": false,
+            "content_script": null,
+            "preprocess": [
+                {
+                    "selector": ".video-block",
+                    "element_name": "figure"
+                },
+                {
+                    "selector": ".image-block",
+                    "element_name": "figure"
                 }
             ]
         }
