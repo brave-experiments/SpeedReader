@@ -446,27 +446,6 @@
         }
     },
     {
-        "domain": "reddit.com",
-        "url_rules": [
-            "||reddit.com/r/*/comments/*"
-        ],
-        "declarative_rewrite": {
-            "main_content": [
-                ".Post",
-                ".Comment"
-            ],
-            "main_content_cleanup": [
-                ".Post button",
-                ".Comment button",
-                ".Comment svg"
-            ],
-            "delazify": true,
-            "fix_embeds": false,
-            "content_script": null,
-            "preprocess": []
-        }
-    },
-    {
         "domain": "huffingtonpost.co.uk",
         "url_rules": [
             "||huffingtonpost.co.uk/entry/*"
