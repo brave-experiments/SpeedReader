@@ -711,7 +711,8 @@
                 "article header img",
                 ".drop-capped",
                 ".RelatedBucket",
-                ".byline__correspondent-photo-container"
+                ".byline__correspondent-photo-container",
+                ".gel-responsive-image"
             ],
             "delazify": true,
             "fix_embeds": true,
@@ -1458,6 +1459,26 @@
                     "selector": ".image-block",
                     "element_name": "figure"
                 }
+            ]
+        }
+    },
+    {
+        "domain": "smashingmagazine.com",
+        "url_rules": [
+            "/smashingmagazine.com\\/(\\d){4}\\/(\\d){2}\\/.*/"
+        ],
+        "declarative_rewrite": {
+            "main_content": [
+                "main article .article-container"
+            ],
+            "main_content_cleanup": [
+                "[class*=promo]", ".drop-caps", ".signature"
+            ],
+            "delazify": true,
+            "fix_embeds": false,
+            "content_script": null,
+            "preprocess": [
+                
             ]
         }
     }
