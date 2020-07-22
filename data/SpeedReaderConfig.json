@@ -243,7 +243,8 @@
                 ".lead-container__social-wrap",
                 ".media__caption--mobile-expanded",
                 ".UniversalVideo",
-                ".enlarge-button"
+                ".enlarge-button",
+                ".interactive"
             ],
             "delazify": true,
             "fix_embeds": false,
