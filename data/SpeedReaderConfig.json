@@ -209,7 +209,7 @@
             ],
             "delazify": false,
             "fix_embeds": false,
-            "content_script": "<script>\n              [...document.querySelectorAll(\"figure\")].map(f => {\n                let imgid = f.id.replace(\"ArticleBody-InlineImage-\", \"\");\n                f.querySelector(\"img\").src = \"https://image.cnbcfm.com/api/v1/image/\"+imgid+\"-.jpeg?w=678\";\n              })\n            </script>",
+            "content_script": "<script>\n [...document.querySelectorAll(\"figure\")].map(f => {\n let imgid = f.id.replace(\"ArticleBody-InlineImage-\", \"\");\n f.querySelector(\"img\").src = \"https://image.cnbcfm.com/api/v1/image/\"+imgid+\"-.jpeg?w=678\";\n })\n </script>",
             "preprocess": [
                 {
                     "selector": "[id^=\"ArticleBody-InlineImage\"]",
@@ -247,7 +247,7 @@
             ],
             "delazify": true,
             "fix_embeds": false,
-            "content_script": "<script>\n                [...document.querySelectorAll(\".picturefill\")]\n                .map((e, i) => {\n                e.src = JSON.parse(e.parentElement.querySelector(\"script\").innerHTML).src;\n                })\n                </script>",
+            "content_script": "<script>\n [...document.querySelectorAll(\".picturefill\")]\n .map((e, i) => {\n e.src = JSON.parse(e.parentElement.querySelector(\"script\").innerHTML).src;\n })\n </script>",
             "preprocess": [
                 {
                     "selector": ".placeholder-image-wrap .picturefill",
@@ -306,7 +306,7 @@
             ],
             "delazify": true,
             "fix_embeds": true,
-            "content_script": "<script>\n            [...document.querySelectorAll(\"[data-src-background]\")]\n                .map(d => d.src = d.dataset[\"src-background\"].replace(\"background-image: url\", \"\").replace(/[\\(\\)]/g, \"\"))\n            </script>",
+            "content_script": "<script>\n [...document.querySelectorAll(\"[data-src-background]\")]\n .map(d => d.src = d.dataset[\"src-background\"].replace(\"background-image: url\", \"\").replace(/[\\(\\)]/g, \"\"))\n </script>",
             "preprocess": [
                 {
                     "selector": ".vjs-big-play-button[style]",
@@ -467,7 +467,7 @@
             ],
             "delazify": true,
             "fix_embeds": false,
-            "content_script": "<script>\n                [...document.querySelectorAll(\".embed-asset [data-style]\")]\n                    .map(e => e.style = e.dataset[\"style\"]);\n                </script>",
+            "content_script": "<script>\n [...document.querySelectorAll(\".embed-asset [data-style]\")]\n .map(e => e.style = e.dataset[\"style\"]);\n </script>",
             "preprocess": [
                 {
                     "selector": ".vdb_player[data-placeholder]",
@@ -578,7 +578,7 @@
             ],
             "delazify": true,
             "fix_embeds": false,
-            "content_script": "<script>\n                [...document.querySelectorAll(\".LazyImage_container img\")]\n                    .map(i => i.src = i.src.replace(/\\&w=\\d+/, \"&w=600\"));\n            </script>",
+            "content_script": "<script>\n [...document.querySelectorAll(\".LazyImage_container img\")]\n .map(i => i.src = i.src.replace(/\\&w=\\d+/, \"&w=600\"));\n </script>",
             "preprocess": []
         }
     },
@@ -948,7 +948,7 @@
             ],
             "delazify": true,
             "fix_embeds": true,
-            "content_script": "\n        <script>\n        [...document.querySelectorAll(\"figure[itemid]\")].forEach(fig => {\n            let lazy = fig.querySelector(\"[data-testid=\\\"lazyimage-container\\\"]\");\n            if (lazy) { lazy.innerHTML = \"<img src='\" + fig.getAttribute(\"itemid\") + \"'>\" }\n        });\n        </script>\n        ",
+            "content_script": "\n <script>\n [...document.querySelectorAll(\"figure[itemid]\")].forEach(fig => {\n let lazy = fig.querySelector(\"[data-testid=\\\"lazyimage-container\\\"]\");\n if (lazy) { lazy.innerHTML = \"<img src='\" + fig.getAttribute(\"itemid\") + \"'>\" }\n });\n </script>\n ",
             "preprocess": [
                 {
                     "selector": "header li",
@@ -1054,7 +1054,7 @@
             ],
             "delazify": true,
             "fix_embeds": false,
-            "content_script": "<script>\n            [...document.querySelectorAll(\".Body .LazyLoad\")].map((div, i) => {\n                let lazyLoad = window.__INITIAL_STATE__.body.cards.filter(c => c[0] === \"pt-image\" || c[0] === \"pt-video-card\")[i];\n                if (!lazyLoad || lazyLoad[0] !== \"pt-image\") return;\n                let figure = document.createElement(\"figure\");\n                figure.innerHTML = '<img src=\"https://img.thedailybeast.com/image/upload/c_crop/dpr_1.0/c_limit,w_600/fl_lossy,q_auto/' \n                    + lazyLoad[1].public_id + '\"><figcaption>' \n                    + lazyLoad[1].title + ' Credit: ' \n                    + lazyLoad[1].credit + '</figcaption>';\n                div.appendChild(figure);\n            })\n            </script>",
+            "content_script": "<script>\n [...document.querySelectorAll(\".Body .LazyLoad\")].map((div, i) => {\n let lazyLoad = window.__INITIAL_STATE__.body.cards.filter(c => c[0] === \"pt-image\" || c[0] === \"pt-video-card\")[i];\n if (!lazyLoad || lazyLoad[0] !== \"pt-image\") return;\n let figure = document.createElement(\"figure\");\n figure.innerHTML = '<img src=\"https://img.thedailybeast.com/image/upload/c_crop/dpr_1.0/c_limit,w_600/fl_lossy,q_auto/' \n + lazyLoad[1].public_id + '\"><figcaption>' \n + lazyLoad[1].title + ' Credit: ' \n + lazyLoad[1].credit + '</figcaption>';\n div.appendChild(figure);\n })\n </script>",
             "preprocess": [
                 {
                     "selector": ".PullQuote",
@@ -1156,7 +1156,7 @@
             ],
             "delazify": true,
             "fix_embeds": false,
-            "content_script": "<script>\n                [...document.querySelectorAll(\".embed-asset [data-style]\")]\n                    .map(e => e.style = e.dataset[\"style\"]);\n                </script>",
+            "content_script": "<script>\n [...document.querySelectorAll(\".embed-asset [data-style]\")]\n .map(e => e.style = e.dataset[\"style\"]);\n </script>",
             "preprocess": [
                 {
                     "selector": ".vdb_player[data-placeholder]",
@@ -1229,7 +1229,7 @@
             ],
             "delazify": true,
             "fix_embeds": true,
-            "content_script": "<script>\n            document.querySelector(\".FeaturedMedia figure img\").src =\n                JSON.parse(document.querySelector('script[type=\"application/ld+json\"]').innerText).image.url;\n            [...document.querySelectorAll(\".InlineImage .Image__Wrapper img\")]\n                .map((e, i) => e.src =\n                    __abcnews__.page.content.story.everscroll[0].inlines.filter(d => d.type === \"image\").map(i => i.imageSrc)[i])\n            </script>",
+            "content_script": "<script>\n document.querySelector(\".FeaturedMedia figure img\").src =\n JSON.parse(document.querySelector('script[type=\"application/ld+json\"]').innerText).image.url;\n [...document.querySelectorAll(\".InlineImage .Image__Wrapper img\")]\n .map((e, i) => e.src =\n __abcnews__.page.content.story.everscroll[0].inlines.filter(d => d.type === \"image\").map(i => i.imageSrc)[i])\n </script>",
             "preprocess": []
         }
     },
