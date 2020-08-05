@@ -331,12 +331,20 @@
             ],
             "main_content_cleanup": [
                 "#saving-united-coupon-list",
-                ".author-info"
+                ".author-info",
+                ".author-container button",
+                ".author-container ul",
+                ".snippet-promotion"
             ],
             "delazify": true,
             "fix_embeds": false,
             "content_script": null,
-            "preprocess": []
+            "preprocess": [
+                {
+                    "selector": ".author-container h3",
+                    "element_name": "span"
+                }
+            ]
         }
     },
     {
