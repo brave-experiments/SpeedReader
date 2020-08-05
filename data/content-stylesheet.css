@@ -463,4 +463,12 @@ iframe {
   #article {
     border-top: 1px solid #3B3E4F;
   }
+
+  #article-summary {
+    color: #C2C4CF;
+  }
+
+  a[href] {
+    color: #737ADE;
+  }
 }
