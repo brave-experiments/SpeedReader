@@ -1469,5 +1469,32 @@
                 
             ]
         }
+    },
+    {
+        "domain": "theverge.com",
+        "url_rules": [
+            "/theverge.com\\/.*(\\d){5,}\\/.*/"
+        ],
+        "declarative_rewrite": {
+            "main_content": [
+                "article .l-col__main",
+                ".c-entry-hero",
+                ".l-feature"
+            ],
+            "main_content_cleanup": [
+                ".c-float-right",
+                "aside",
+                "#comments",
+                ".c-nextclick",
+                "[class*=hidden]",
+                ".c-social-buttons"
+            ],
+            "delazify": true,
+            "fix_embeds": false,
+            "content_script": null,
+            "preprocess": [
+                
+            ]
+        }
     }
 ]
