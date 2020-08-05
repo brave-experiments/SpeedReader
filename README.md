@@ -25,3 +25,8 @@ How do I request a new site to be added: [File a GitHub issue](https://github.co
 How do I report an issue with page rewriting: [File a GitHub issue](https://github.com/brave-experiments/SpeedReader/issues/new?assignees=&labels=&template=content-rewriting-problem.md&title=Content+rewriting+error+on+...)
 
 _Note: SpeedReader implementation has been moved to https://github.com/brave/brave-core/tree/master/components/speedreader_
+
+## Deployment
+
+- Production: https://ci.brave.com/view/all/job/brave-core-ext-speedreader-data-files-update-publish/
+- Dev: https://ci.brave.com/view/all/job/brave-core-ext-speedreader-data-files-update-publish-dev/
