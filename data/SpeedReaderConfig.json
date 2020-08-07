@@ -1,5 +1,26 @@
 [
     {
+        "domain": "dailymail.co.uk",
+        "url_rules": [
+            "||dailymail.co.uk/*/article-*/*"
+        ],
+        "declarative_rewrite": {
+            "main_content": [
+                "#js-article-text > h2",
+                "#js-article-text > ul",
+                "#js-article-text > [class*=byline]",
+                "#js-article-text > [itemprop=articleBody]"
+            ],
+            "main_content_cleanup": [
+                "[data-track-module$=related_carousel]"
+            ],
+            "delazify": true,
+            "fix_embeds": true,
+            "content_script": null,
+            "preprocess": []
+        }
+    },
+    {
         "domain": "chron.com",
         "url_rules": [
             "||chron.com/*/article/"

@@ -388,8 +388,12 @@ article sup, article sub {
     padding-bottom: 45px;
   }
   article video {
+    width: 100%;
     height: auto;
     position: relative;
+  }
+  #article .mol-video {
+    margin: 1.2em auto;
   }
 }
 
