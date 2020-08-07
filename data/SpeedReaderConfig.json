@@ -1546,5 +1546,25 @@
                 
             ]
         }
+    },
+    {
+        "domain": "arstechnica.com",
+        "url_rules": [
+            "/arstechnica.com\\/.*(\\d){4}\\/(\\d){2}\\/.*/"
+        ],
+        "declarative_rewrite": {
+            "main_content": [
+                "article"
+            ],
+            "main_content_cleanup": [
+                "#article-footer-wrap",
+                "#social-footer",
+                "[class*=social]"
+            ],
+            "delazify": true,
+            "fix_embeds": false,
+            "content_script": null,
+            "preprocess": []
+        }
     }
 ]
