@@ -392,9 +392,6 @@ article sup, article sub {
     height: auto;
     position: relative;
   }
-  #article .mol-video {
-    margin: 1.2em auto;
-  }
 }
 
 #article .extendsBeyondTextColumn {
