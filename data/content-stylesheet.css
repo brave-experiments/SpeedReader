@@ -391,8 +391,6 @@ article sup, article sub {
     width: 100%;
     height: auto;
     position: relative;
-  }
-  #article .mol-video {
     margin: 1.2em auto;
   }
 }
