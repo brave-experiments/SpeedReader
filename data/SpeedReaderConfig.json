@@ -312,33 +312,24 @@
         ],
         "declarative_rewrite": {
             "main_content": [
-                "article header",
-                ".content__article-body"
+                "a[data-component=series]",
+                "a[data-component=section]",
+                "div[role=textbox]",
+                "h1",
+                "a[rel=author]",
+                "picture",
+                "#the-caption figcaption",
+                "main .article-body-commercial-selector",
+                "aside",
+                "p"
             ],
             "main_content_cleanup": [
-                ".hide-on-mobile",
-                ".inline-icon",
-                ".atom__button",
-                "input",
-                ".meta__extras",
-                ".content__headline-showcase-wrapper",
-                ".fc-container__header",
-                "figure.element-embed",
-                ".vjs-control-text"
+                "aside > span"
             ],
             "delazify": true,
             "fix_embeds": true,
-            "content_script": "<script>\n [...document.querySelectorAll(\"[data-src-background]\")]\n .map(d => d.src = d.dataset[\"src-background\"].replace(\"background-image: url\", \"\").replace(/[\\(\\)]/g, \"\"))\n </script>",
-            "preprocess": [
-                {
-                    "selector": ".vjs-big-play-button[style]",
-                    "attribute": [
-                        "style",
-                        "data-src-background"
-                    ],
-                    "element_name": "img"
-                }
-            ]
+            "content_script": "<style>blockquote { font-size: 1.2em; line-height: 1.5em } #article aside { float: left; margin: 1em; max-width: 40% } aside::before { content: '“'; display: block; height: .25em; font-size: 4em } figcaption svg {display: inline-block; margin-right: .25em } [rel=author] { display: block; margin-bottom: 1em } [data-component=series], [data-component=section] { display: inline-block; margin-right: 1em } #article figcaption { max-width: 75%; text-align: center; margin: 1em auto }</style>",
+            "preprocess": []
         }
     },
     {
