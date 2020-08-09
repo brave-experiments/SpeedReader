@@ -314,6 +314,7 @@
             "main_content": [
                 "a[data-component=series]",
                 "a[data-component=section]",
+                "[data-component=meta-byline]",
                 "div[role=textbox]",
                 "h1",
                 "a[rel=author]",
@@ -328,7 +329,7 @@
             ],
             "delazify": true,
             "fix_embeds": true,
-            "content_script": "<style>blockquote { font-size: 1.2em; line-height: 1.5em } #article aside { float: left; margin: 1em; max-width: 40% } aside::before { content: '“'; display: block; height: .25em; font-size: 4em } figcaption svg {display: inline-block; margin-right: .25em } [rel=author] { display: block; margin-bottom: 1em } [data-component=series], [data-component=section] { display: inline-block; margin-right: 1em } #article figcaption { max-width: 75%; text-align: center; margin: 1em auto }</style>",
+            "content_script": "<style>blockquote { font-size: 1.2em; line-height: 1.5em } #article aside { float: left; margin: 1em; max-width: 40% } aside::before { content: '“'; display: block; height: .25em; font-size: 4em } figcaption svg {display: inline-block; margin-right: .25em } [rel=author] { display: block; margin-bottom: 1em } [data-component=series], [data-component=section] { display: inline-block; margin-right: 1em }</style>",
             "preprocess": []
         }
     },
