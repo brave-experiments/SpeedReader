@@ -1,5 +1,26 @@
 [
     {
+        "domain": "foreignpolicy.com",
+        "url_rules": [
+            "/foreignpolicy.com\/\\d{4}\/\\d{2}\/\\d{2}\/.*/"
+        ],
+        "declarative_rewrite": {
+            "main_content": [
+                "article"
+            ],
+            "main_content_cleanup": [
+                "[class*=taboola]",
+                ".the-comments",
+                ".the-tags",
+                "[class*=related-articles]"
+            ],
+            "delazify": true,
+            "fix_embeds": true,
+            "content_script": null,
+            "preprocess": []
+        }
+    },
+    {
         "domain": "dailymail.co.uk",
         "url_rules": [
             "||dailymail.co.uk/*/article-*/*"
