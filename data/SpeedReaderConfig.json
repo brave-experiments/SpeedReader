@@ -697,6 +697,7 @@
         "domain": "bbc.co.uk",
         "url_rules": [
             "/bbc\\.co.uk\\/.*-(\\d){6,}/",
+            "/bbc\\.com\\/[\\w-]+\\/(\\d){6,}/",
             "/bbc\\.co.uk\\/.*\\/.*\\/(\\d){6,}/",
             "||bbc.co.uk/*/articles/*",
             "@@||bbc.co.uk/*/live/*"
@@ -725,7 +726,7 @@
             ],
             "delazify": true,
             "fix_embeds": true,
-            "content_script": "<script>[...document.querySelectorAll(\"img[data-src].blocks-image\")].map((e,c)=>{e.dataset.src&&(e.src=e.dataset.src.replace(\"{width}\",\"1200xn\"))}),[...document.querySelectorAll(\"img[data-src].sp-lazyload\")].map((e,c)=>{e.dataset.src&&(e.src=e.dataset.src.replace(\"{width}\",\"1200\").replace(\"{hidpi}\",\"\"))}),[...document.querySelectorAll(\"img[src].js-image-replace, img[src].js-delayed-image-load\")].map((e,c)=>{e.src=e.src.replace(\"bbci.co.uk/news/320/\",\"bbci.co.uk/news/800/\")});</script>",
+            "content_script": "<script>[...document.querySelectorAll(\"img[data-src].blocks-image\")].map((e,c)=>{e.dataset.src&&(e.src=e.dataset.src.replace(\"{width}\",\"800xn\"))}),[...document.querySelectorAll(\"img[data-src].sp-lazyload\")].map((e,c)=>{e.dataset.src&&(e.src=e.dataset.src.replace(\"{width}\",\"800\").replace(\"{hidpi}\",\"\"))}),[...document.querySelectorAll(\"img[src].js-image-replace, img[src].js-delayed-image-load\")].map((e,c)=>{e.src=e.src.replace(\"bbci.co.uk/news/320/\",\"bbci.co.uk/news/800/\")});</script>",
             "preprocess": [
                 {
                     "selector": ".js-delayed-image-load",
@@ -772,6 +773,7 @@
         "domain": "bbc.com",
         "url_rules": [
             "/bbc\\.com\\/.*-(\\d){6,}/",
+            "/bbc\\.com\\/[\\w-]+\\/(\\d){6,}/",
             "/bbc\\.com\\/.*\\/.*\\/(\\d){6,}/",
             "||bbc.com/*/articles/*",
             "@@||bbc.com/*/live/*"
@@ -799,7 +801,7 @@
             ],
             "delazify": true,
             "fix_embeds": true,
-            "content_script": "<script>[...document.querySelectorAll(\"img[data-src].blocks-image\")].map((e,c)=>{e.dataset.src&&(e.src=e.dataset.src.replace(\"{width}\",\"1200xn\"))}),[...document.querySelectorAll(\"img[data-src].sp-lazyload\")].map((e,c)=>{e.dataset.src&&(e.src=e.dataset.src.replace(\"{width}\",\"1200\").replace(\"{hidpi}\",\"\"))}),[...document.querySelectorAll(\"img[src].js-image-replace, img[src].js-delayed-image-load\")].map((e,c)=>{e.src=e.src.replace(\"bbci.co.uk/news/320/\",\"bbci.co.uk/news/800/\")});</script>",
+            "content_script": "<script>[...document.querySelectorAll(\"img[data-src].blocks-image\")].map((e,c)=>{e.dataset.src&&(e.src=e.dataset.src.replace(\"{width}\",\"800xn\"))}),[...document.querySelectorAll(\"img[data-src].sp-lazyload\")].map((e,c)=>{e.dataset.src&&(e.src=e.dataset.src.replace(\"{width}\",\"800\").replace(\"{hidpi}\",\"\"))}),[...document.querySelectorAll(\"img[src].js-image-replace, img[src].js-delayed-image-load\")].map((e,c)=>{e.src=e.src.replace(\"bbci.co.uk/news/320/\",\"bbci.co.uk/news/800/\")});</script>",
             "preprocess": [
                 {
                     "selector": ".js-delayed-image-load",
