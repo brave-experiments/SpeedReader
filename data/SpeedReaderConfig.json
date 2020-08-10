@@ -321,14 +321,18 @@
                 ".atom__button",
                 "input",
                 ".meta__extras",
+                ".meta__contact-method",
+                ".meta__image",
                 ".content__headline-showcase-wrapper",
                 ".fc-container__header",
                 "figure.element-embed",
-                ".vjs-control-text"
+                ".vjs-control-text",
+                "aside > span",
+                ".submeta__share"
             ],
             "delazify": true,
             "fix_embeds": true,
-            "content_script": "<script>\n [...document.querySelectorAll(\"[data-src-background]\")]\n .map(d => d.src = d.dataset[\"src-background\"].replace(\"background-image: url\", \"\").replace(/[\\(\\)]/g, \"\"))\n </script>",
+            "content_script": "<script>\n [...document.querySelectorAll(\"[data-src-background]\")]\n .map(d => d.src = d.dataset[\"srcBackground\"].replace(\"background-image: url\", \"\").replace(/[\\(\\)]/g, \"\"))\n </script><style>blockquote { font-size: 1.2em; line-height: 1.5em } #article aside { float: left; margin: 1em; max-width: 40% } aside::before { content: '“'; display: block; height: .25em; font-size: 4em } figcaption svg {display: inline-block; margin-right: .25em } [data-component=series], [data-component=section] { display: inline-block; margin-right: 1em } li:empty { display: none }</style>",
             "preprocess": [
                 {
                     "selector": ".vjs-big-play-button[style]",
@@ -337,6 +341,10 @@
                         "data-src-background"
                     ],
                     "element_name": "img"
+                },
+                {
+                    "selector": "a.js-gallerythumbs",
+                    "element_name": "div"
                 }
             ]
         }
