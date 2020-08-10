@@ -320,10 +320,9 @@
                 "div[role=textbox]",
                 "h1",
                 "a[rel=author]",
-                "picture",
+                "article picture",
                 "#the-caption figcaption",
                 "main .article-body-commercial-selector",
-                "aside",
                 "p"
             ],
             "main_content_cleanup": [
