@@ -313,7 +313,18 @@
         "declarative_rewrite": {
             "main_content": [
                 "article header",
-                ".content__article-body"
+                ".content__article-body",
+                "a[data-component=series]",
+                "a[data-component=section]",
+                "[data-component=meta-byline]",
+                "div[role=textbox]",
+                "h1",
+                "a[rel=author]",
+                "picture",
+                "#the-caption figcaption",
+                "main .article-body-commercial-selector",
+                "aside",
+                "p"
             ],
             "main_content_cleanup": [
                 ".hide-on-mobile",
