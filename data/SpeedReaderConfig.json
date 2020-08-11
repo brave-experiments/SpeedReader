@@ -1,5 +1,61 @@
 [
     {
+        "domain": "css-tricks.com",
+        "url_rules": [
+            "! Initial support aimed for almanac, articles, license, and screencasts",
+            "@@||css-tricks.com/about/",
+            "@@||css-tricks.com/contact/",
+            "@@||css-tricks.com/authors/",
+            "@@||css-tricks.com/archives/",
+            "@@||css-tricks.com/advertising/",
+            "@@||css-tricks.com/books/",
+            "@@||css-tricks.com/guides/",
+            "@@||css-tricks.com/jobs/",
+            "@@||css-tricks.com/newsletters/",
+            "@@||css-tricks.com/product/",
+            "@@||css-tricks.com/tag/",
+            "||css-tricks.com/video-screencasts/*/^",
+            "||css-tricks.com/*/^"
+        ],
+        "declarative_rewrite": {
+            "main_content": [
+                ".logo",
+                "main",
+                ".header-guides",
+                ".fancy-post",
+                ".page-header",
+                ".page-wrap-almanac",
+                ".all-site-wrap"
+            ],
+            "main_content_cleanup": [
+                "header > style",
+                "#hero-article-ad",
+                ".tags",
+                ".logo svg",
+                ".author-avatar",
+                ".header-gradient-after",
+                ".article-comments-meta",
+                "[class*=sponsor]:not(.header-sponsor-grid)",
+                ".entry-unrelated",
+                ".almanac-sidebar",
+                ".all-site-wrap > svg",
+                ".related-ads-comments-wrap",
+                "header > svg.header-line-only",
+                "li[class^=breadcrumbs] img",
+                "#all-ads"
+            ],
+            "delazify": true,
+            "fix_embeds": true,
+            "content_script": "<style>nav.breadcrumbs ul { display: flex } nav.breadcrumbs li { flex: 1; list-style: none } span.watch-video-button { vertical-align: middle } .almanac-headers { display: grid; grid-template-columns: 1fr 1fr } .almanac-letter-row { min-height: 2em; padding-top: 1em; display: grid; grid-template-columns: 75px 1fr calc(75px + 2rem) 1fr; border-top: 1px solid #201c29 } .browser-support-table { width: 100% } .browser-support-table td { text-align: center } header { margin-bottom: 1em } .mega-header-header > span { display: block; margin-bottom: 1em } .logo { margin-bottom: 1em } .logo a { text-decoration: none } iframe { width: 100% }</style><script>[...document.querySelectorAll('img[data-lazy-src]')].forEach(x=>x.srcset='')</script>",
+            "preprocess": [
+                {
+                    "selector": ".logo .screen-reader-text",
+                    "element_name": "h1"
+                }
+            ]
+        }
+    },
+    {
         "domain": "foreignpolicy.com",
         "url_rules": [
             "/foreignpolicy.com\/\\d{4}\/\\d{2}\/\\d{2}\/.*/"
