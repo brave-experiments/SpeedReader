@@ -1,5 +1,56 @@
 [
     {
+        "domain": "css-tricks.com",
+        "url_rules": [
+            "! Initial support aimed for almanac, articles, license, and screencasts",
+            "@@/about/",
+            "@@/contact/",
+            "@@/authors/",
+            "@@/archives/",
+            "@@/advertising/",
+            "@@/books/",
+            "@@/guides/",
+            "@@/jobs/",
+            "@@/newsletters/",
+            "@@/product/",
+            "@@/tag/",
+            "/video-screencasts/*/^",
+            "/\/[a-z0-9-]+\//"
+        ],
+        "declarative_rewrite": {
+            "main_content": [
+                ".logo",
+                "body > svg[display='none']",
+                "main",
+                ".header-guides",
+                ".fancy-post",
+                ".page-header",
+                ".page-wrap-almanac",
+                ".all-site-wrap"
+            ],
+            "main_content_cleanup": [
+                "header > style",
+                "#hero-article-ad",
+                ".tags",
+                ".header-gradient-after",
+                ".author-avatar .half-circle",
+                ".article-comments-meta",
+                "[class*=sponsor]:not(.header-sponsor-grid)",
+                ".entry-unrelated",
+                ".almanac-sidebar",
+                ".all-site-wrap > svg",
+                ".related-ads-comments-wrap",
+                "header > svg.header-line-only",
+                "li[class^=breadcrumbs] img",
+                "#all-ads"
+            ],
+            "delazify": true,
+            "fix_embeds": true,
+            "content_script": "<style>nav.breadcrumbs ul { display: flex } nav.breadcrumbs li { flex: 1; list-style: none } span.watch-video-button { vertical-align: middle } .almanac-headers { display: grid; grid-template-columns: 1fr 1fr } .almanac-letter-row { min-height: 2em; padding-top: 1em; display: grid; grid-template-columns: 75px 1fr calc(75px + 2rem) 1fr; border-top: 1px solid #201c29 } .browser-support-table { width: 100% } .browser-support-table td { text-align: center } header { margin-bottom: 1em } .mega-header-header > span { display: block; margin-bottom: 1em } .logo { margin-bottom: 1em } .logo a { text-decoration: none } .screen-reader-text { display: none } iframe { width: 100% } #article .author-avatar img { width: auto }</style><script>[...document.querySelectorAll('img[data-lazy-src]')].forEach(x=>x.srcset='')</script>",
+            "preprocess": []
+        }
+    },
+    {
         "domain": "dailymail.co.uk",
         "url_rules": [
             "||dailymail.co.uk/*/article-*/*"
