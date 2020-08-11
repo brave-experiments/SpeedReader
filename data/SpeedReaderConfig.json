@@ -350,7 +350,7 @@
             ],
             "delazify": true,
             "fix_embeds": true,
-            "content_script": "<style>blockquote { font-size: 1.2em; line-height: 1.5em } #article aside { float: left; margin: 1em; max-width: 40% } aside::before { content: '“'; display: block; height: .25em; font-size: 4em } figcaption svg {display: inline-block; margin-right: .25em } [data-component=series], [data-component=section] { display: inline-block; margin-right: 1em } li:empty { display: none }</style>",
+            "content_script": "<style>#article aside { float: left; margin: 1em; max-width: 40% } aside::before { content: '“'; display: block; height: .25em; font-size: 4em } figcaption svg {display: inline-block; margin-right: .25em } [data-component=series], [data-component=section] { display: inline-block; margin-right: 1em } li:empty { display: none }</style>",
             "preprocess": []
         }
     },
