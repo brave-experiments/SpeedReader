@@ -1,5 +1,56 @@
 [
     {
+        "domain": "techtimes.com",
+        "url_rules": [
+            "/techtimes.com\/\\w+\/?/",
+            "/techtimes.com\/articles\/\\d+\/\\d{8}\/.*\\.htm/"
+        ],
+        "declarative_rewrite": {
+            "main_content": [
+                "article",
+                "ul.menu",
+                ".container .bk-body",
+                ".container .wp-bg",
+                ".sec-page",
+                ".logo"
+            ],
+            "main_content_cleanup": [
+                ".bts_social",
+                ".at-sns-v",
+                ".at-tag",
+                ".at-comt",
+                ".at-related",
+                ".article-category",
+                "article meta",
+                "div[id^=contentad]",
+                "article > script",
+                "article > style",
+                ".about-right img",
+                "[class^=adunit_]",
+                ".bk-side",
+                ".bk-side-sub",
+                ".logo img"
+            ],
+            "delazify": true,
+            "fix_embeds": true,
+            "content_script": "<style>.logo a::before { font-size: 2rem; display: inline-block; content: 'Tech Times' }</style><script>[...document.querySelectorAll('.mkem')].forEach(o => {let d = o.dataset, l = document.createElement('a'); l.textContent = `${d.first + d.last}@${d.domain}`; l.href = `mailto:${l.textContent}`; o.appendChild(l);})</script>",
+            "preprocess": [
+                {
+                    "selector": "div.at-date > div, .bk-body div.more",
+                    "element_name": "p"
+                },
+                {
+                    "selector": "div.imageNone, div.imageBox",
+                    "element_name": "figure"
+                },
+                {
+                    "selector": "div.caption",
+                    "element_name": "figcaption"
+                }
+            ]
+        }
+    },
+    {
         "domain": "css-tricks.com",
         "url_rules": [
             "! Initial support aimed for almanac, articles, license, and screencasts",
