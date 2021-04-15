@@ -94,7 +94,6 @@ a[href] {
   /* By default, images are centered on their own line. */
   margin-bottom: 0.5em;
   display: block;
-  width: 100%;
   height: auto;
 }
 
@@ -128,7 +127,6 @@ body.watch #article .leading-image, body.watch #article figure {
 
 #article .leading-image :matches(.caption, .credit), #article figcaption {
   margin-top: 0.8em;
-  width: 100%;
 }
 
 #article figcaption>* {
@@ -254,10 +252,6 @@ body.watch #article .float {
 
 figure {
   margin: 0;
-}
-
-figure img {
-  width: 100%;
 }
 
 body:not(.watch) figure:not(.float) {
