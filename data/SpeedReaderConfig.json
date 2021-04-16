@@ -80,6 +80,7 @@
             ],
             "main_content_cleanup": [
                 "header > style",
+                ".article-card > style",
                 "#hero-article-ad",
                 ".tags",
                 ".logo svg",
@@ -90,6 +91,7 @@
                 ".entry-unrelated",
                 ".almanac-sidebar",
                 ".all-site-wrap > svg",
+                ".link-read-more svg",
                 ".related-ads-comments-wrap",
                 "header > svg.header-line-only",
                 "li[class^=breadcrumbs] img",
