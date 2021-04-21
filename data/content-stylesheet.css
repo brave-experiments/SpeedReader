@@ -37,7 +37,7 @@ p {
   font-size: 1.5em;
   line-height: 1em;
   font-weight: normal;
-  color: rgba(27, 27, 27, 0.65);
+  color: #495057;
 }
 
 .metadata {
@@ -465,5 +465,9 @@ iframe {
 
   a[href] {
     color: #737ADE;
+  }
+
+  .subhead, .subheading {
+    color: #C2C4CF;
   }
 }
