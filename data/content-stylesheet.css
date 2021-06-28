@@ -422,8 +422,12 @@ iframe {
   }
 }
 
-/* Basic dark theme */
-
+/* Basic dark theme
+ *
+ * We are removing this until we have a toggle inside of the Speedreader
+ * UI for theme. Dark theme can cause webcompat issues, and users won't
+ * want to change the entire browser theme for Speedreader.
+ *
 @media (prefers-color-scheme: dark) {
   body {
     background-color: #1E2029;
@@ -471,3 +475,4 @@ iframe {
     color: #C2C4CF;
   }
 }
+*/
