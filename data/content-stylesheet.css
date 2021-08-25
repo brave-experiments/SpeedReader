@@ -370,7 +370,7 @@ article sup, article sub {
   #article {
     margin-left: auto;
     margin-right: auto;
-    padding-top: 35px;
+    padding-top: 4.5em;
     padding-bottom: 35px;
     position: relative;
     border-top: 1px solid rgba(0, 0, 0, 0.2);
@@ -381,7 +381,6 @@ article sup, article sub {
   #article {
     margin-top: 0;
     border-top: none;
-    padding-top: 32px;
   }
   #article:last-of-type {
     padding-bottom: 45px;
