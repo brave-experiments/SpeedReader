@@ -228,10 +228,6 @@ body.watch #article .float {
   -webkit-padding-start: 0;
 }
 
-#article .list-style-type-none.code-block code {
-  white-space: pre-wrap;
-}
-
 #article div.scrollable {
   overflow-x: scroll;
   word-wrap: normal;
@@ -279,6 +275,10 @@ pre {
   font-family: "Lucida Console", Courier, monospace;
   font-size: 0.87em;
   line-height: 1.45em;
+}
+
+pre, code {
+  white-space: pre-wrap;
 }
 
 blockquote, q {
